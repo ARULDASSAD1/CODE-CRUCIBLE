@@ -17,10 +17,10 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full px-4">
-        <Card className="shadow-lg">
+      <div className="flex justify-center max-w-2xl w-full px-4">
+        <Card className="shadow-lg w-full">
           <CardHeader>
-            <CardTitle className="font-headline text-3xl">For Participants</CardTitle>
+            <CardTitle className="font-headline text-3xl">Participant Portal</CardTitle>
             <CardDescription>
               Ready to test your skills? Jump into the competition.
             </CardDescription>
@@ -31,26 +31,7 @@ export default function Home() {
             </p>
             <Link href="/participant" passHref>
               <Button className="w-full text-lg py-6 font-semibold">
-                Go to Participant Portal <ArrowRight className="ml-2" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="font-headline text-3xl">For Admins</CardTitle>
-            <CardDescription>
-              Manage the event, questions, and scoreboard from here.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4">
-              Control the flow of the competition, from setting up rounds to tracking participant progress.
-            </p>
-            <Link href="/admin" passHref>
-              <Button variant="secondary" className="w-full text-lg py-6 font-semibold">
-                Go to Admin Dashboard <ArrowRight className="ml-2" />
+                Enter Competition <ArrowRight className="ml-2" />
               </Button>
             </Link>
           </CardContent>
