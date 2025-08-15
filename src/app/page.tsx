@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, BookOpen, Crown, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BookOpen, Crown } from 'lucide-react';
 import { getInstructions } from './actions';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SiteHeader } from '@/components/site-header';
@@ -60,18 +60,6 @@ export default async function Home() {
                         <CardContent>
                             <p className="text-muted-foreground">
                             You will face three rounds of challenges: MCQs, code debugging, and a final coding problem. Good luck!
-                            </p>
-                        </CardContent>
-                    </Card>
-                    <Card className="shadow-lg border-border/50 hover:border-accent/50 transition-all transform hover:-translate-y-1">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-3 font-headline text-2xl">
-                            <ShieldCheck size={24} className="text-accent" /> Offline First
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-muted-foreground">
-                            This entire event runs locally on the LAN. No internet connection required.
                             </p>
                         </CardContent>
                     </Card>
