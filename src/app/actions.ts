@@ -8,6 +8,8 @@ import path from 'path';
 
 const dataPath = path.join(process.cwd(), 'data');
 const instructionsPath = path.join(dataPath, 'instructions.json');
+const mcqsPath = path.join(dataPath, 'round1-mcqs.json');
+
 
 async function ensureDbReady() {
     try {
@@ -37,4 +39,39 @@ export async function getInstructions(): Promise<Instructions> {
         // If file doesn't exist, return empty instructions
         return { instructions: '' };
     }
+}
+
+// ============== ROUND 1: MCQs ==============
+
+export type McqQuestion = {
+    id: string;
+    question: string;
+    options: string[];
+    correctAnswer: string; // Will store the value of the correct option
+};
+
+export async function getMcqQuestions(): Promise<McqQuestion[]> {
+    await ensureDbReady();
+    try {
+        const fileContent = await fs.readFile(mcqsPath, 'utf8');
+        return JSON.parse(fileContent);
+    } catch (error) {
+        return [];
+    }
+}
+
+export async function saveMcqQuestion(question: Omit<McqQuestion, 'id'>): Promise<void> {
+    const questions = await getMcqQuestions();
+    const newQuestion: McqQuestion = {
+        ...question,
+        id: new Date().toISOString(), // Simple unique ID
+    };
+    questions.push(newQuestion);
+    await fs.writeFile(mcqsPath, JSON.stringify(questions, null, 2), 'utf8');
+}
+
+export async function deleteMcqQuestion(id: string): Promise<void> {
+    let questions = await getMcqQuestions();
+    questions = questions.filter(q => q.id !== id);
+    await fs.writeFile(mcqsPath, JSON.stringify(questions, null, 2), 'utf8');
 }
