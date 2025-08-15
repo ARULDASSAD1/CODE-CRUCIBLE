@@ -82,7 +82,7 @@ export default function ManageRound1() {
 
   useEffect(() => {
     fetchQuestions();
-  }, [toast]);
+  }, []);
 
   const handleFormSubmit: SubmitHandler<McqFormValues> = async (data) => {
     setIsSaving(true);
@@ -258,7 +258,7 @@ export default function ManageRound1() {
                         <p className="font-semibold">{q.question}</p>
                         <ul className="list-disc pl-5 mt-2 text-sm text-muted-foreground">
                           {q.options.map((opt, i) => (
-                            <li key={i} className={q.correctAnswer === opt ? 'font-bold text-accent' : ''}>
+                            <li key={i} className={q.correctAnswer === opt ? 'font-bold text-primary' : ''}>
                               {opt}
                             </li>
                           ))}
@@ -292,5 +292,5 @@ export default function ManageRound1() {
         </div>
       </main>
     </div>
-  )
+  );
 }
