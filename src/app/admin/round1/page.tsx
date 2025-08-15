@@ -217,7 +217,7 @@ export default function ManageRound1() {
                   {isSaving ? 'Saving...' : 'Save Question'}
                 </Button>
                 <Button asChild variant="secondary" disabled={isSaving}>
-                    <Label>
+                    <Label className="flex items-center gap-2 cursor-pointer">
                         <Upload /> Upload .xlsx
                         <Input type="file" accept=".xlsx" className="hidden" onChange={handleFileUpload} />
                     </Label>
