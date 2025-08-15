@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Users, FileText, ClipboardCheck, BarChart2 } from "lucide-react";
+import { Users, FileText, ClipboardCheck, BarChart2, Info } from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -41,6 +41,19 @@ export default function AdminDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Info /> Instructions
+                </CardTitle>
+                <CardDescription>Post instructions for participants.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/admin/instructions" passHref>
+                  <Button className="w-full">Manage Instructions</Button>
+                </Link>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
