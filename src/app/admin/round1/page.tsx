@@ -82,7 +82,7 @@ export default function ManageRound1() {
 
   useEffect(() => {
     fetchQuestions();
-  }, []);
+  }, [toast]);
 
   const handleFormSubmit: SubmitHandler<McqFormValues> = async (data) => {
     setIsSaving(true);
@@ -90,7 +90,7 @@ export default function ManageRound1() {
       await saveMcqQuestion(data);
       toast({ title: "Success", description: "Question saved successfully." });
       reset();
-      fetchQuestions(); // Refresh list
+      await fetchQuestions(); // Refresh list
     } catch (error) {
       toast({ title: "Error", description: "Failed to save question.", variant: "destructive" });
     } finally {
@@ -102,7 +102,7 @@ export default function ManageRound1() {
     try {
       await deleteMcqQuestion(id);
       toast({ title: "Success", description: "Question deleted." });
-      fetchQuestions(); // Refresh list
+      await fetchQuestions(); // Refresh list
     } catch (error) {
       toast({ title: "Error", description: "Failed to delete question.", variant: "destructive" });
     }
@@ -141,13 +141,14 @@ export default function ManageRound1() {
             if (newQuestions.length > 0) {
               await saveMcqQuestions(newQuestions);
               toast({ title: "Success", description: `${newQuestions.length} questions uploaded successfully.` });
-              fetchQuestions(); // Refresh list
+              await fetchQuestions(); // Refresh list
             } else {
               toast({ title: "Warning", description: "No new questions found in the file or file is not formatted correctly.", variant: "destructive" });
             }
 
         } catch (error) {
-            toast({ title: "Error", description: "Failed to parse or upload the file.", variant: "destructive" });
+            console.error(error);
+            toast({ title: "Error", description: "Failed to parse or upload the file. Check console for details.", variant: "destructive" });
         } finally {
             setIsSaving(false);
             // Reset file input
@@ -219,7 +220,7 @@ export default function ManageRound1() {
                 <Button asChild variant="secondary" disabled={isSaving}>
                     <Label className="flex items-center gap-2 cursor-pointer">
                         <Upload /> Upload .xlsx
-                        <Input type="file" accept=".xlsx" className="hidden" onChange={handleFileUpload} />
+                        <Input type="file" accept=".xlsx,.csv" className="hidden" onChange={handleFileUpload} />
                     </Label>
                 </Button>
               </CardFooter>
@@ -251,41 +252,43 @@ export default function ManageRound1() {
               ) : questions.length === 0 ? (
                 <p>No questions have been added yet.</p>
               ) : (
-                <ul className="space-y-4">
-                  {questions.map((q) => (
-                    <li key={q.id} className="p-4 border rounded-lg flex justify-between items-start">
-                      <div>
-                        <p className="font-semibold">{q.question}</p>
-                        <ul className="list-disc pl-5 mt-2 text-sm text-muted-foreground">
-                          {q.options.map((opt, i) => (
-                            <li key={i} className={q.correctAnswer === opt ? 'font-bold text-primary' : ''}>
-                              {opt}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                       <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                <Trash2 size={18} />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the question.
-                              </Description>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(q.id)}>Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                    </li>
-                  ))}
-                </ul>
+                <ScrollArea className="h-[500px]">
+                  <ul className="space-y-4">
+                    {questions.map((q) => (
+                      <li key={q.id} className="p-4 border rounded-lg flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold">{q.question}</p>
+                          <ul className="list-disc pl-5 mt-2 text-sm text-muted-foreground">
+                            {q.options.map((opt, i) => (
+                              <li key={i} className={q.correctAnswer === opt ? 'font-bold text-primary' : ''}>
+                                {opt}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive flex-shrink-0">
+                                  <Trash2 size={18} />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete the question.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(q.id)}>Delete</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                      </li>
+                    ))}
+                  </ul>
+                </ScrollArea>
               )}
             </CardContent>
           </Card>
