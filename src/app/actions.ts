@@ -64,11 +64,22 @@ export async function saveMcqQuestion(question: Omit<McqQuestion, 'id'>): Promis
     const questions = await getMcqQuestions();
     const newQuestion: McqQuestion = {
         ...question,
-        id: new Date().toISOString(), // Simple unique ID
+        id: new Date().toISOString() + Math.random(), // Simple unique ID
     };
     questions.push(newQuestion);
     await fs.writeFile(mcqsPath, JSON.stringify(questions, null, 2), 'utf8');
 }
+
+
+export async function saveMcqQuestions(newQuestions: Omit<McqQuestion, 'id'>[]): Promise<void> {
+    const existingQuestions = await getMcqQuestions();
+    const questionsToSave: McqQuestion[] = [
+        ...existingQuestions,
+        ...newQuestions.map(q => ({...q, id: new Date().toISOString() + Math.random()}))
+    ];
+    await fs.writeFile(mcqsPath, JSON.stringify(questionsToSave, null, 2), 'utf8');
+}
+
 
 export async function deleteMcqQuestion(id: string): Promise<void> {
     let questions = await getMcqQuestions();

@@ -12,8 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { getMcqQuestions, saveMcqQuestion, deleteMcqQuestion, McqQuestion } from '@/app/actions';
-import { Loader2, Trash2, PlusCircle } from 'lucide-react';
+import { getMcqQuestions, saveMcqQuestion, deleteMcqQuestion, saveMcqQuestions, McqQuestion } from '@/app/actions';
+import { Loader2, Trash2, Upload } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 
 
 const mcqSchema = z.object({
@@ -35,6 +36,8 @@ const mcqSchema = z.object({
 });
 
 type McqFormValues = z.infer<typeof mcqSchema>;
+type McqUpload = Omit<McqQuestion, 'id'>;
+
 
 export default function ManageRound1() {
   const [questions, setQuestions] = useState<McqQuestion[]>([]);
@@ -58,7 +61,7 @@ export default function ManageRound1() {
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields } = useFieldArray({
     control,
     name: "options"
   });
@@ -105,6 +108,56 @@ export default function ManageRound1() {
     }
   };
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const data = e.target?.result;
+        if (!data) return;
+
+        setIsSaving(true);
+        try {
+            const workbook = XLSX.read(data, { type: 'binary' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            
+            const newQuestions: McqUpload[] = [];
+            // Start from 1 to skip header row
+            for(let i = 1; i < json.length; i++) {
+                const row = json[i] as string[];
+                if (row.length < 6) continue; // Skip incomplete rows
+                
+                const question: McqUpload = {
+                    question: row[0],
+                    options: [row[1], row[2], row[3], row[4]],
+                    correctAnswer: row[5]
+                };
+                newQuestions.push(question);
+            }
+
+            if (newQuestions.length > 0) {
+              await saveMcqQuestions(newQuestions);
+              toast({ title: "Success", description: `${newQuestions.length} questions uploaded successfully.` });
+              fetchQuestions(); // Refresh list
+            } else {
+              toast({ title: "Warning", description: "No new questions found in the file or file is not formatted correctly.", variant: "destructive" });
+            }
+
+        } catch (error) {
+            toast({ title: "Error", description: "Failed to parse or upload the file.", variant: "destructive" });
+        } finally {
+            setIsSaving(false);
+            // Reset file input
+            event.target.value = '';
+        }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+
   return (
     <div className="flex flex-col min-h-screen">
       <SiteHeader />
@@ -144,7 +197,7 @@ export default function ManageRound1() {
                       >
                         {fields.map((item, index) => (
                           <div key={item.id} className="flex items-center gap-2">
-                            <RadioGroupItem value={options[index]} id={`option-${index}`} />
+                            <RadioGroupItem value={options[index] || ''} id={`option-${index}`} />
                             <Input
                               {...register(`options.${index}`)}
                               placeholder={`Option ${index + 1}`}
@@ -158,10 +211,16 @@ export default function ManageRound1() {
                   {errors.correctAnswer && <p className="text-destructive text-sm">{errors.correctAnswer.message}</p>}
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className='justify-between'>
                 <Button type="submit" disabled={isSaving}>
                   {isSaving && <Loader2 className="animate-spin" />}
                   {isSaving ? 'Saving...' : 'Save Question'}
+                </Button>
+                <Button asChild variant="secondary" disabled={isSaving}>
+                    <Label>
+                        <Upload /> Upload .xlsx
+                        <Input type="file" accept=".xlsx" className="hidden" onChange={handleFileUpload} />
+                    </Label>
                 </Button>
               </CardFooter>
             </form>
@@ -173,6 +232,18 @@ export default function ManageRound1() {
               <CardDescription>The list of questions currently saved for Round 1.</CardDescription>
             </CardHeader>
             <CardContent>
+                <div className='bg-muted/50 p-4 rounded-lg mb-4 text-sm'>
+                    <h4 className='font-bold mb-2'>Excel Upload Instructions:</h4>
+                    <p>Format your `.xlsx` file with the following columns (with a header row):</p>
+                    <ul className='list-disc pl-5 mt-2'>
+                        <li><span className='font-semibold'>Column A:</span> Question Text</li>
+                        <li><span className='font-semibold'>Column B:</span> Option 1</li>
+                        <li><span className='font-semibold'>Column C:</span> Option 2</li>
+                        <li><span className='font-semibold'>Column D:</span> Option 3</li>
+                        <li><span className='font-semibold'>Column E:</span> Option 4</li>
+                        <li><span className='font-semibold'>Column F:</span> Correct Answer (must match one of the options exactly)</li>
+                    </ul>
+                </div>
               {isLoading ? (
                 <div className="flex justify-center items-center h-48">
                   <Loader2 className="animate-spin" size={32} />
@@ -204,7 +275,7 @@ export default function ManageRound1() {
                               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                               <AlertDialogDescription>
                                 This action cannot be undone. This will permanently delete the question.
-                              </AlertDialogDescription>
+                              </Description>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
