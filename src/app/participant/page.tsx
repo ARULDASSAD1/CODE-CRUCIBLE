@@ -1,10 +1,37 @@
+"use client";
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ListChecks, Bug, Code } from "lucide-react";
+import { ListChecks, Bug, Code, Loader2 } from "lucide-react";
 
 export default function ParticipantPortal() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const participantDetails = localStorage.getItem('participantDetails');
+    if (!participantDetails) {
+      router.replace('/participant/register');
+    } else {
+      setLoading(false);
+    }
+  }, [router]);
+
+  if (loading) {
+    return (
+        <div className="flex flex-col min-h-screen">
+            <SiteHeader />
+            <main className="flex-1 flex items-center justify-center">
+                <Loader2 className="animate-spin" size={48} />
+            </main>
+        </div>
+    )
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <SiteHeader />

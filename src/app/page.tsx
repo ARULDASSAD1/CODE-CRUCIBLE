@@ -47,7 +47,7 @@ export default async function Home() {
             <p className="mb-4">
               You will face three rounds of challenges: MCQs, code debugging, and a final coding problem. Good luck!
             </p>
-            <Link href="/participant" passHref>
+            <Link href="/participant/register" passHref>
               <Button className="w-full text-lg py-6 font-semibold">
                 Enter Competition <ArrowRight className="ml-2" />
               </Button>
