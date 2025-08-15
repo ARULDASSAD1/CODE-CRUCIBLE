@@ -2,7 +2,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ListChecks, Bug, Code, Info } from "lucide-react";
+import { ListChecks, Bug, Code } from "lucide-react";
 
 export default function ParticipantPortal() {
   return (
@@ -20,19 +20,6 @@ export default function ParticipantPortal() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             <Card className="md:col-span-1 lg:col-span-3">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Info /> Instructions
-                </CardTitle>
-                <CardDescription>Please read the instructions carefully before you begin.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/participant/instructions" passHref>
-                  <Button className="w-full">View Instructions</Button>
-                </Link>
-              </CardContent>
-            </Card>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
