@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { getMcqQuestions, McqQuestion } from '@/app/actions';
+import { getMcqQuestions, McqQuestion, Participant, submitRound1Answers } from '@/app/actions';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -21,10 +21,18 @@ export default function ParticipantRound1() {
     const [answers, setAnswers] = useState<Answer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [participant, setParticipant] = useState<Participant | null>(null);
     const { toast } = useToast();
     const router = useRouter();
 
-    useEffect(() => {
+     useEffect(() => {
+        const participantDetails = localStorage.getItem('participantDetails');
+        if (participantDetails) {
+            setParticipant(JSON.parse(participantDetails));
+        } else {
+            router.replace('/participant/register');
+        }
+
         const fetchQuestions = async () => {
             setIsLoading(true);
             try {
@@ -37,7 +45,7 @@ export default function ParticipantRound1() {
             }
         };
         fetchQuestions();
-    }, [toast]);
+    }, [toast, router]);
     
     const handleAnswerChange = (questionId: string, answer: string) => {
         setAnswers(prevAnswers => {
@@ -46,32 +54,35 @@ export default function ParticipantRound1() {
         });
     };
 
-    const handleSubmit = () => {
-        setIsSubmitting(true);
-        // In a real app, you'd save these answers to the server.
-        // For now, we'll just calculate the score on the client.
-        
-        let score = 0;
-        for (const question of questions) {
-            const participantAnswer = answers.find(a => a.questionId === question.id);
-            if (participantAnswer && participantAnswer.answer === question.correctAnswer) {
-                score++;
-            }
+    const handleSubmit = async () => {
+        if (!participant) {
+            toast({ title: "Error", description: "Participant details not found.", variant: "destructive" });
+            return;
         }
-        
-        localStorage.setItem('round1Score', score.toString());
-        localStorage.setItem('round1Answers', JSON.stringify(answers));
 
-        toast({
-            title: "Round 1 Submitted!",
-            description: `You scored ${score} out of ${questions.length}.`,
-        });
+        setIsSubmitting(true);
+        try {
+            const { score } = await submitRound1Answers(participant.id, answers);
+            
+            toast({
+                title: "Round 1 Submitted!",
+                description: `You scored ${score} out of ${questions.length}.`,
+            });
 
-        // Simulate a delay for submission
-        setTimeout(() => {
+            // Simulate a delay for submission
+            setTimeout(() => {
+                setIsSubmitting(false);
+                router.push('/participant'); // Go back to the portal
+            }, 1500);
+
+        } catch (error) {
+             toast({
+                title: "Submission Failed",
+                description: "There was an error submitting your answers.",
+                variant: "destructive",
+            });
             setIsSubmitting(false);
-            router.push('/participant'); // Go back to the portal
-        }, 1500);
+        }
     };
 
     return (

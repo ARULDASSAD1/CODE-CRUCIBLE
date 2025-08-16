@@ -9,11 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
+import { saveParticipant } from '@/app/actions';
 
 export default function ParticipantRegister() {
     const router = useRouter();
     const { toast } = useToast();
     const [name, setName] = useState('');
+    const [teamName, setTeamName] = useState('');
     const [year, setYear] = useState('');
     const [dept, setDept] = useState('');
     const [college, setCollege] = useState('');
@@ -26,11 +28,11 @@ export default function ParticipantRegister() {
         }
     }, [router]);
 
-    const handleRegister = (e: React.FormEvent) => {
+    const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
 
-        if (!name || !year || !dept || !college) {
+        if (!name || !teamName || !year || !dept || !college) {
             toast({
                 title: "Incomplete Form",
                 description: "Please fill out all fields.",
@@ -40,38 +42,62 @@ export default function ParticipantRegister() {
             return;
         }
 
-        const participantDetails = { name, year, dept, college };
-        localStorage.setItem('participantDetails', JSON.stringify(participantDetails));
-        
-        toast({
-            title: "Registration Successful",
-            description: "Welcome to the Code Crucible!",
-        });
+        const participantDetails = { id: '', name, teamName, year, dept, college };
+        try {
+            const newParticipant = await saveParticipant(participantDetails);
+            localStorage.setItem('participantDetails', JSON.stringify(newParticipant));
+            
+            toast({
+                title: "Registration Successful",
+                description: `Welcome, ${teamName}!`,
+            });
 
-        router.push('/participant');
+            router.push('/participant');
+
+        } catch (error) {
+             toast({
+                title: "Registration Failed",
+                description: "Could not save participant details.",
+                variant: "destructive",
+            });
+            setIsLoading(false);
+        }
     };
 
     return (
         <div className="flex flex-col min-h-screen">
             <SiteHeader />
             <main className="flex-1 flex items-center justify-center container mx-auto px-4 py-8">
-                <Card className="w-full max-w-md">
+                <Card className="w-full max-w-lg">
                     <CardHeader>
                         <CardTitle>Participant Registration</CardTitle>
                         <CardDescription>Please enter your details to begin.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleRegister} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Full Name</Label>
-                                <Input
-                                    id="name"
-                                    placeholder="e.g., Ada Lovelace"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    required
-                                    disabled={isLoading}
-                                />
+                             <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Full Name</Label>
+                                    <Input
+                                        id="name"
+                                        placeholder="e.g., Ada Lovelace"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        required
+                                        disabled={isLoading}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="teamName">Team Name</Label>
+                                    <Input
+                                        id="teamName"
+                                        placeholder="e.g., The Compilers"
+                                        value={teamName}
+                                        onChange={(e) => setTeamName(e.target.value)}
+                                        required
+                                        disabled={isLoading}
+                                    />
+                                </div>
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="college">College Name</Label>

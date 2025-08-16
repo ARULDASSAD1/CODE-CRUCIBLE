@@ -9,6 +9,7 @@ import path from 'path';
 const dataPath = path.join(process.cwd(), 'data');
 const instructionsPath = path.join(dataPath, 'instructions.json');
 const mcqsPath = path.join(dataPath, 'round1-mcqs.json');
+const participantsPath = path.join(dataPath, 'participants.json');
 
 
 async function ensureDbReady() {
@@ -85,4 +86,73 @@ export async function deleteMcqQuestion(id: string): Promise<void> {
     let questions = await getMcqQuestions();
     questions = questions.filter(q => q.id !== id);
     await fs.writeFile(mcqsPath, JSON.stringify(questions, null, 2), 'utf8');
+}
+
+
+// ============== PARTICIPANTS ==============
+
+export type Participant = {
+    id: string;
+    name: string;
+    teamName: string;
+    year: string;
+    dept: string;
+    college: string;
+    round1?: {
+        score: number;
+        answers: { questionId: string, answer: string }[];
+        submittedAt: string; // ISO string
+    };
+    disqualified?: boolean;
+};
+
+export async function getParticipants(): Promise<Participant[]> {
+    await ensureDbReady();
+    try {
+        const fileContent = await fs.readFile(participantsPath, 'utf8');
+        return JSON.parse(fileContent);
+    } catch (error) {
+        return [];
+    }
+}
+
+export async function saveParticipant(participantData: Omit<Participant, 'id'>): Promise<Participant> {
+    const participants = await getParticipants();
+    const newParticipant: Participant = {
+        ...participantData,
+        id: new Date().toISOString() + Math.random(), // Simple unique ID
+    };
+    participants.push(newParticipant);
+    await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
+    return newParticipant;
+}
+
+export async function submitRound1Answers(participantId: string, answers: { questionId: string, answer: string }[]) {
+    const questions = await getMcqQuestions();
+    let score = 0;
+    for (const question of questions) {
+        const participantAnswer = answers.find(a => a.questionId === question.id);
+        if (participantAnswer && participantAnswer.answer === question.correctAnswer) {
+            score++;
+        }
+    }
+
+    const participants = await getParticipants();
+    const participantIndex = participants.findIndex(p => p.id === participantId);
+
+    if (participantIndex === -1) {
+        throw new Error("Participant not found");
+    }
+
+    participants[participantIndex] = {
+        ...participants[participantIndex],
+        round1: {
+            score,
+            answers,
+            submittedAt: new Date().toISOString()
+        }
+    };
+
+    await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
+    return { score };
 }
