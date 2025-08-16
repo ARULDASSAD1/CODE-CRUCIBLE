@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { getMcqQuestions, saveMcqQuestion, deleteMcqQuestion, saveMcqQuestions, McqQuestion } from '@/app/actions';
+import { getMcqQuestions, saveMcqQuestion, deleteMcqQuestion, saveMcqQuestions, deleteMcqQuestions, McqQuestion } from '@/app/actions';
 import { Loader2, Trash2, Upload } from 'lucide-react';
 import {
   AlertDialog,
@@ -28,6 +28,7 @@ import {
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 const mcqSchema = z.object({
@@ -44,6 +45,7 @@ export default function ManageRound1() {
   const [questions, setQuestions] = useState<McqQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const { toast } = useToast();
 
   const {
@@ -83,7 +85,7 @@ export default function ManageRound1() {
 
   useEffect(() => {
     fetchQuestions();
-  }, [toast]);
+  }, []);
 
   const handleFormSubmit: SubmitHandler<McqFormValues> = async (data) => {
     setIsSaving(true);
@@ -108,6 +110,27 @@ export default function ManageRound1() {
       toast({ title: "Error", description: "Failed to delete question.", variant: "destructive" });
     }
   };
+
+  const handleBulkDelete = async () => {
+    try {
+        await deleteMcqQuestions(selectedQuestions);
+        toast({ title: "Success", description: `${selectedQuestions.length} questions deleted.` });
+        setSelectedQuestions([]);
+        await fetchQuestions();
+    } catch (error) {
+        toast({ title: "Error", description: "Failed to delete selected questions.", variant: "destructive" });
+    }
+  };
+
+  const handleSelectQuestion = (id: string, isSelected: boolean) => {
+    setSelectedQuestions(prev => 
+        isSelected ? [...prev, id] : prev.filter(qid => qid !== id)
+    );
+  };
+
+  const handleSelectAll = (isAllSelected: boolean) => {
+    setSelectedQuestions(isAllSelected ? questions.map(q => q.id) : []);
+  }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -253,11 +276,49 @@ export default function ManageRound1() {
               ) : questions.length === 0 ? (
                 <p>No questions have been added yet.</p>
               ) : (
+                <>
+                <div className="flex items-center justify-between mb-4">
+                     <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id="select-all"
+                            checked={selectedQuestions.length === questions.length && questions.length > 0}
+                            onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                        />
+                        <Label htmlFor="select-all">Select All</Label>
+                    </div>
+                    {selectedQuestions.length > 0 && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete ({selectedQuestions.length})
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete {selectedQuestions.length} questions.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleBulkDelete}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
+                </div>
                 <ScrollArea className="h-[500px]">
                   <ul className="space-y-4">
                     {questions.map((q) => (
-                      <li key={q.id} className="p-4 border rounded-lg flex justify-between items-start">
-                        <div>
+                      <li key={q.id} className="p-4 border rounded-lg flex items-start gap-4">
+                        <Checkbox
+                            id={q.id}
+                            checked={selectedQuestions.includes(q.id)}
+                            onCheckedChange={(checked) => handleSelectQuestion(q.id, !!checked)}
+                        />
+                        <div className='flex-1'>
                           <p className="font-semibold">{q.question}</p>
                           <ul className="list-disc pl-5 mt-2 text-sm text-muted-foreground">
                             {q.options.map((opt, i) => (
@@ -290,6 +351,7 @@ export default function ManageRound1() {
                     ))}
                   </ul>
                 </ScrollArea>
+                </>
               )}
             </CardContent>
           </Card>

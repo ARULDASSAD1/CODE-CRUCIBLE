@@ -88,6 +88,12 @@ export async function deleteMcqQuestion(id: string): Promise<void> {
     await fs.writeFile(mcqsPath, JSON.stringify(questions, null, 2), 'utf8');
 }
 
+export async function deleteMcqQuestions(ids: string[]): Promise<void> {
+    let questions = await getMcqQuestions();
+    questions = questions.filter(q => !ids.includes(q.id));
+    await fs.writeFile(mcqsPath, JSON.stringify(questions, null, 2), 'utf8');
+}
+
 
 // ============== PARTICIPANTS ==============
 
