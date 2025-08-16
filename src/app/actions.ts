@@ -1,3 +1,4 @@
+
 'use server';
 
 import { promises as fs } from 'fs';
@@ -9,6 +10,7 @@ import path from 'path';
 const dataPath = path.join(process.cwd(), 'data');
 const instructionsPath = path.join(dataPath, 'instructions.json');
 const mcqsPath = path.join(dataPath, 'round1-mcqs.json');
+const round2SnippetsPath = path.join(dataPath, 'round2-snippets.json');
 const participantsPath = path.join(dataPath, 'participants.json');
 
 
@@ -92,6 +94,40 @@ export async function deleteMcqQuestions(ids: string[]): Promise<void> {
     let questions = await getMcqQuestions();
     questions = questions.filter(q => !ids.includes(q.id));
     await fs.writeFile(mcqsPath, JSON.stringify(questions, null, 2), 'utf8');
+}
+
+// ============== ROUND 2: DEBUGGING ==============
+
+export type Round2Snippet = {
+    id: string;
+    title: string;
+    code: string;
+}
+
+export async function getRound2Snippets(): Promise<Round2Snippet[]> {
+    await ensureDbReady();
+    try {
+        const fileContent = await fs.readFile(round2SnippetsPath, 'utf8');
+        return JSON.parse(fileContent);
+    } catch (error) {
+        return [];
+    }
+}
+
+export async function saveRound2Snippet(snippet: Omit<Round2Snippet, 'id'>): Promise<void> {
+    const snippets = await getRound2Snippets();
+    const newSnippet: Round2Snippet = {
+        ...snippet,
+        id: new Date().toISOString() + Math.random(),
+    };
+    snippets.push(newSnippet);
+    await fs.writeFile(round2SnippetsPath, JSON.stringify(snippets, null, 2), 'utf8');
+}
+
+export async function deleteRound2Snippet(id: string): Promise<void> {
+    let snippets = await getRound2Snippets();
+    snippets = snippets.filter(s => s.id !== id);
+    await fs.writeFile(round2SnippetsPath, JSON.stringify(snippets, null, 2), 'utf8');
 }
 
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -89,7 +90,7 @@ export default function ParticipantPortal() {
               </CardHeader>
               <CardContent>
                 <Link href="/participant/round2" passHref>
-                  <Button className="w-full" disabled>Start Round 2</Button>
+                  <Button className="w-full">Start Round 2</Button>
                 </Link>
               </CardContent>
             </Card>
