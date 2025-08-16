@@ -64,7 +64,7 @@ export default function EditProfile() {
         });
     }
 
-    if (isFetching || !participant) {
+    if (isFetching) {
         return (
              <div className="flex flex-col min-h-screen">
                 <SiteHeader />
@@ -91,7 +91,7 @@ export default function EditProfile() {
                                     <Label htmlFor="name">Full Name</Label>
                                     <Input
                                         id="name"
-                                        value={participant.name}
+                                        value={participant?.name || ''}
                                         onChange={handleChange}
                                         required
                                         disabled={isLoading}
@@ -101,7 +101,7 @@ export default function EditProfile() {
                                     <Label htmlFor="teamName">Team Name</Label>
                                     <Input
                                         id="teamName"
-                                        value={participant.teamName}
+                                        value={participant?.teamName || ''}
                                         onChange={handleChange}
                                         required
                                         disabled={isLoading}
@@ -112,7 +112,7 @@ export default function EditProfile() {
                                 <Label htmlFor="college">College Name</Label>
                                 <Input
                                     id="college"
-                                    value={participant.college}
+                                    value={participant?.college || ''}
                                     onChange={handleChange}
                                     required
                                     disabled={isLoading}
@@ -123,7 +123,7 @@ export default function EditProfile() {
                                     <Label htmlFor="year">Year</Label>
                                     <Input
                                         id="year"
-                                        value={participant.year}
+                                        value={participant?.year || ''}
                                         onChange={handleChange}
                                         required
                                         disabled={isLoading}
@@ -133,7 +133,7 @@ export default function EditProfile() {
                                     <Label htmlFor="dept">Department</Label>
                                     <Input
                                         id="dept"
-                                        value={participant.dept}
+                                        value={participant?.dept || ''}
                                         onChange={handleChange}
                                         required
                                         disabled={isLoading}
@@ -141,7 +141,7 @@ export default function EditProfile() {
                                 </div>
                             </div>
                             <div className='flex justify-between'>
-                                <Button type="submit" className="w-1/2" disabled={isLoading}>
+                                <Button type="submit" className="w-1/2" disabled={isLoading || !participant}>
                                     {isLoading && <Loader2 className="animate-spin" />}
                                     {isLoading ? 'Saving...' : 'Save Changes'}
                                 </Button>
@@ -156,4 +156,3 @@ export default function EditProfile() {
         </div>
     );
 }
-
