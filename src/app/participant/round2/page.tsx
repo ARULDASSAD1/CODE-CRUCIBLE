@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Label } from '@/components/ui/label';
 
 
 export default function ParticipantRound2() {
@@ -72,16 +73,29 @@ export default function ParticipantRound2() {
         setIsCompiling(true);
         setOutput('');
         // Placeholder for WASM compilation logic
-        // This will be implemented in the next step.
+        // In a real scenario, this would call a WASM C compiler library.
         setTimeout(() => {
-            setOutput("Compilation feature coming soon...\nYour code has been received.");
+            // This is a mock response.
+            if (code.includes('main()')) {
+                 setOutput("Compilation successful.\nOutput:\nHello, World!");
+            } else {
+                 setOutput("Error: Missing main function.");
+            }
+            toast({ title: "Code Compiled", description: "Check the output below." });
             setIsCompiling(false);
-        }, 1000);
+        }, 1500);
     };
 
     const handleSubmit = async () => {
         // Placeholder for submission logic
-        toast({ title: "Submit", description: "Submission feature coming soon."});
+        setIsSubmitting(true);
+        // Here you would save the final code and timestamp
+        toast({ title: "Submitting...", description: "Your final code is being submitted."});
+        setTimeout(() => {
+            toast({ title: "Code Submitted!", description: "Your solution has been saved."});
+            setIsSubmitting(false);
+            // router.push('/participant'); // Optional: redirect after submission
+        }, 1000);
     }
 
     return (
@@ -103,6 +117,7 @@ export default function ParticipantRound2() {
                         ) : (
                             <>
                                 <div className="space-y-4">
+                                     <Label>Select Snippet</Label>
                                     <Select onValueChange={handleSnippetChange} defaultValue={selectedSnippet?.id}>
                                       <SelectTrigger>
                                         <SelectValue placeholder="Select a snippet to debug" />
@@ -113,7 +128,7 @@ export default function ParticipantRound2() {
                                         ))}
                                       </SelectContent>
                                     </Select>
-
+                                    <Label>Your Code</Label>
                                     <Textarea
                                         value={code}
                                         onChange={(e) => setCode(e.target.value)}
@@ -132,7 +147,7 @@ export default function ParticipantRound2() {
                                     <Label>Output</Label>
                                     <Card className='bg-muted'>
                                         <CardContent className="p-4">
-                                            <pre className="text-sm font-code h-80 whitespace-pre-wrap">
+                                            <pre className="text-sm font-code h-[400px] whitespace-pre-wrap overflow-auto">
                                                 {output || "Output will be displayed here."}
                                             </pre>
                                         </CardContent>
@@ -143,7 +158,7 @@ export default function ParticipantRound2() {
                     </CardContent>
                      {snippets.length > 0 && (
                         <CardFooter className='border-t pt-6 flex justify-end'>
-                            <Button onClick={handleSubmit} disabled={isSubmitting}>
+                            <Button onClick={handleSubmit} disabled={isSubmitting || isCompiling}>
                                 {isSubmitting && <Loader2 className="animate-spin" />}
                                 {isSubmitting ? 'Submitting...' : 'Submit Final Code'}
                             </Button>
@@ -154,4 +169,3 @@ export default function ParticipantRound2() {
         </div>
     );
 }
-
