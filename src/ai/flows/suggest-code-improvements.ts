@@ -40,7 +40,7 @@ const prompt = ai.definePrompt({
   prompt: `You are a C code debugging assistant. Review the following C code and provide suggestions for potential errors or improvements. Be specific and provide the line number where the error occurs. 
 
 C Code:
-{{code}}`,
+{{{code}}}`,
 });
 
 const suggestCodeImprovementsFlow = ai.defineFlow(
