@@ -51,6 +51,7 @@ export default function ParticipantRound1() {
             try {
                 const fetchedQuestions = await getMcqQuestions();
                 setQuestions(fetchedQuestions);
+                setAnswers(fetchedQuestions.map(q => ({ questionId: q.id, answer: '' })));
             } catch (error) {
                 toast({ title: "Error", description: "Could not load questions.", variant: "destructive" });
             } finally {
@@ -75,7 +76,14 @@ export default function ParticipantRound1() {
             const { score } = await submitRound1Answers(participant.id, answers);
             
             // Update local storage to mark round 1 as complete
-            const updatedParticipant = {...participant, round1: { score, answers, submittedAt: new Date().toISOString()}};
+            const updatedParticipant: Participant = {
+                ...participant, 
+                round1: { 
+                    score, 
+                    answers, 
+                    submittedAt: new Date().toISOString()
+                }
+            };
             localStorage.setItem('participantDetails', JSON.stringify(updatedParticipant));
             
             toast({
@@ -133,6 +141,7 @@ export default function ParticipantRound1() {
         return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
     };
 
+    const answeredQuestions = answers.filter(a => a.answer !== '').length;
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -178,7 +187,7 @@ export default function ParticipantRound1() {
                     </CardContent>
                     <CardFooter>
                         {questions.length > 0 && (
-                             <Button onClick={handleSubmit} disabled={isSubmitting || answers.length !== questions.length}>
+                             <Button onClick={handleSubmit} disabled={isSubmitting || answeredQuestions !== questions.length}>
                                 {isSubmitting && <Loader2 className="animate-spin" />}
                                 {isSubmitting ? 'Submitting...' : 'Submit Answers'}
                             </Button>

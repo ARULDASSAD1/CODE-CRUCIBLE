@@ -122,11 +122,15 @@ export async function getParticipants(): Promise<Participant[]> {
     }
 }
 
-export async function saveParticipant(participantData: Omit<Participant, 'id'>): Promise<Participant> {
+export async function saveParticipant(participantData: Omit<Participant, 'id' | 'round1' | 'disqualified'>): Promise<Participant> {
     const participants = await getParticipants();
     const newParticipant: Participant = {
-        ...participantData,
         id: new Date().toISOString() + Math.random(), // Simple unique ID
+        name: participantData.name,
+        teamName: participantData.teamName,
+        college: participantData.college,
+        year: participantData.year,
+        dept: participantData.dept,
     };
     participants.push(newParticipant);
     await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
@@ -145,11 +149,7 @@ export async function updateParticipant(participantData: Participant): Promise<P
     const existingParticipant = participants[participantIndex];
     participants[participantIndex] = {
         ...existingParticipant, // Keep existing data like round submissions
-        name: participantData.name,
-        teamName: participantData.teamName,
-        college: participantData.college,
-        year: participantData.year,
-        dept: participantData.dept,
+        ...participantData, // Overwrite with new data from the form
     };
 
     await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
@@ -174,13 +174,10 @@ export async function submitRound1Answers(participantId: string, answers: { ques
         throw new Error("Participant not found");
     }
 
-    participants[participantIndex] = {
-        ...participants[participantIndex],
-        round1: {
-            score,
-            answers,
-            submittedAt: new Date().toISOString()
-        }
+    participants[participantIndex].round1 = {
+        score,
+        answers,
+        submittedAt: new Date().toISOString()
     };
 
     await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');

@@ -42,9 +42,9 @@ export default function ParticipantRegister() {
             return;
         }
 
-        const participantDetails = { id: '', name, teamName, year, dept, college };
+        const participantData = { name, teamName, year, dept, college };
         try {
-            const newParticipant = await saveParticipant(participantDetails);
+            const newParticipant = await saveParticipant(participantData);
             localStorage.setItem('participantDetails', JSON.stringify(newParticipant));
             
             toast({
