@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ListChecks, Bug, Code, Loader2 } from "lucide-react";
+import { ListChecks, Bug, Code, Loader2, LogOut, User } from "lucide-react";
 
 export default function ParticipantPortal() {
   const router = useRouter();
@@ -50,11 +50,20 @@ export default function ParticipantPortal() {
               <h1 className="font-headline text-4xl md:text-5xl font-bold tracking-tight">
                 Participant Portal
               </h1>
-              <p className="mt-3 text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="mt-3 text-lg text-muted-foreground max-w-2xl">
                 Welcome, {participantName}! Here are the rounds.
               </p>
             </div>
-            <Button variant="outline" onClick={handleLogout}>Logout</Button>
+            <div className='flex items-center gap-2'>
+                <Button variant="outline" asChild>
+                    <Link href="/participant/edit-profile">
+                        <User /> Edit Profile
+                    </Link>
+                </Button>
+                <Button variant="outline" onClick={handleLogout}>
+                    <LogOut /> Logout
+                </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

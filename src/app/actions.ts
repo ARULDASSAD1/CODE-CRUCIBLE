@@ -133,6 +133,30 @@ export async function saveParticipant(participantData: Omit<Participant, 'id'>):
     return newParticipant;
 }
 
+export async function updateParticipant(participantData: Participant): Promise<Participant> {
+    const participants = await getParticipants();
+    const participantIndex = participants.findIndex(p => p.id === participantData.id);
+
+    if (participantIndex === -1) {
+        throw new Error("Participant not found");
+    }
+
+    // Preserve round-specific data that isn't part of the edit form
+    const existingParticipant = participants[participantIndex];
+    participants[participantIndex] = {
+        ...existingParticipant, // Keep existing data like round submissions
+        name: participantData.name,
+        teamName: participantData.teamName,
+        college: participantData.college,
+        year: participantData.year,
+        dept: participantData.dept,
+    };
+
+    await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
+    return participants[participantIndex];
+}
+
+
 export async function submitRound1Answers(participantId: string, answers: { questionId: string, answer: string }[]) {
     const questions = await getMcqQuestions();
     let score = 0;
