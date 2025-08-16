@@ -156,6 +156,24 @@ export async function updateParticipant(participantData: Participant): Promise<P
     return participants[participantIndex];
 }
 
+export async function deleteParticipant(id: string): Promise<void> {
+    let participants = await getParticipants();
+    participants = participants.filter(p => p.id !== id);
+    await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
+}
+
+export async function toggleDisqualify(id: string): Promise<void> {
+    const participants = await getParticipants();
+    const participantIndex = participants.findIndex(p => p.id === id);
+
+    if (participantIndex === -1) {
+        throw new Error("Participant not found");
+    }
+
+    participants[participantIndex].disqualified = !participants[participantIndex].disqualified;
+    await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
+}
+
 
 export async function submitRound1Answers(participantId: string, answers: { questionId: string, answer: string }[]) {
     const questions = await getMcqQuestions();
