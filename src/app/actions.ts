@@ -114,6 +114,11 @@ export async function getRound2Snippets(): Promise<Round2Snippet[]> {
     }
 }
 
+export async function getRound2Snippet(): Promise<Round2Snippet | null> {
+    const snippets = await getRound2Snippets();
+    return snippets[0] || null;
+}
+
 export async function saveRound2Snippet(snippet: Omit<Round2Snippet, 'id'>): Promise<void> {
     const snippets = await getRound2Snippets();
     const newSnippet: Round2Snippet = {
