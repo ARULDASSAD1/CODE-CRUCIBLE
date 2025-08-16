@@ -58,23 +58,25 @@ export default function ParticipantRound2() {
 
     }, [router, toast]);
     
-    const handleScriptLoad = () => {
-        if (window.TCC && typeof window.TCC.init === 'function') {
-            window.TCC.init().then((loadedTcc: any) => {
-                tcc.current = loadedTcc;
-                setIsCompilerReady(true);
-                setOutput('Compiler loaded. Ready to run code.');
-                toast({ title: "Compiler Ready", description: "The C compiler has loaded successfully." });
-            }).catch((err: any) => {
-                console.error("TCC initialization failed:", err);
-                setOutput('Error: Could not initialize the C compiler.');
-                toast({ title: "Compiler Error", description: "Failed to load the C compiler.", variant: "destructive" });
-            });
-        } else {
-             console.error("TCC script loaded, but window.TCC.init is not a function.");
-             setOutput('Error: TCC script did not load correctly.');
-        }
-    };
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            if (window.TCC && typeof window.TCC.init === 'function') {
+                clearInterval(intervalId);
+                window.TCC.init().then((loadedTcc: any) => {
+                    tcc.current = loadedTcc;
+                    setIsCompilerReady(true);
+                    setOutput('Compiler loaded. Ready to run code.');
+                    toast({ title: "Compiler Ready", description: "The C compiler has loaded successfully." });
+                }).catch((err: any) => {
+                    console.error("TCC initialization failed:", err);
+                    setOutput('Error: Could not initialize the C compiler.');
+                    toast({ title: "Compiler Error", description: "Failed to load the C compiler.", variant: "destructive" });
+                });
+            }
+        }, 100); // Check every 100ms
+
+        return () => clearInterval(intervalId); // Cleanup on unmount
+    }, [toast]);
     
     const handleRunCode = () => {
         if (!tcc.current) {
@@ -108,7 +110,7 @@ export default function ParticipantRound2() {
 
     return (
         <>
-            <Script src="/tcc-bundle.js" onReady={handleScriptLoad} strategy="lazyOnload" />
+            <Script src="/tcc-bundle.js" strategy="lazyOnload" />
             <div className="flex flex-col min-h-screen">
                 <SiteHeader />
                 <main className="flex-1 container mx-auto px-4 py-8">
