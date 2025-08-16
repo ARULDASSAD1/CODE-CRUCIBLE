@@ -2,31 +2,28 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
+import Script from 'next/script';
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { getRound2Snippets, Round2Snippet } from '@/app/actions';
 import { Loader2, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { suggestCodeImprovements } from '@/ai/flows/suggest-code-improvements';
+
+declare global {
+  interface Window {
+    TCC: any;
+  }
+}
 
 export default function ParticipantRound2() {
-    const [snippets, setSnippets] = useState<Round2Snippet[]>([]);
-    const [selectedSnippet, setSelectedSnippet] = useState<Round2Snippet | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [code, setCode] = useState('');
-    const [analysis, setAnalysis] = useState('');
+    const [code, setCode] = useState('#include <stdio.h>\\n\\nint main() {\\n  printf("Hello, world!\\n");\\n  return 0;\\n}');
+    const [output, setOutput] = useState('Compiler not yet loaded. Please wait...');
+    const [isCompiling, setIsCompiling] = useState(false);
+    const [isCompilerReady, setIsCompilerReady] = useState(false);
+    const tcc = useRef<any>(null);
     
     const { toast } = useToast();
     const router = useRouter();
@@ -35,114 +32,100 @@ export default function ParticipantRound2() {
         const participantDetails = localStorage.getItem('participantDetails');
         if (!participantDetails) {
             router.replace('/participant/register');
+        }
+    }, [router]);
+    
+    const handleScriptLoad = () => {
+        if (window.TCC && typeof window.TCC.init === 'function') {
+            window.TCC.init().then((loadedTcc: any) => {
+                tcc.current = loadedTcc;
+                setIsCompilerReady(true);
+                setOutput('Compiler loaded. Ready to run code.');
+                toast({ title: "Compiler Ready", description: "The C compiler has loaded successfully." });
+            }).catch((err: any) => {
+                console.error("TCC initialization failed:", err);
+                setOutput('Error: Could not initialize the C compiler.');
+                toast({ title: "Compiler Error", description: "Failed to load the C compiler.", variant: "destructive" });
+            });
+        } else {
+             console.error("TCC script loaded, but window.TCC.init is not a function.");
+             setOutput('Error: TCC script did not load correctly.');
+        }
+    };
+    
+    const handleRunCode = () => {
+        if (!tcc.current) {
+            toast({ title: "Compiler Not Ready", description: "Please wait for the compiler to finish loading.", variant: "destructive" });
             return;
         }
 
-        const fetchSnippets = async () => {
-            setIsLoading(true);
-            try {
-                const fetchedSnippets = await getRound2Snippets();
-                setSnippets(fetchedSnippets);
-                if (fetchedSnippets.length > 0) {
-                    setSelectedSnippet(fetchedSnippets[0]);
-                    setCode(fetchedSnippets[0].code);
-                }
-            } catch (error) {
-                console.error("Failed to load snippets:", error);
-                toast({ title: "Error", description: "Could not load debugging challenges.", variant: "destructive" });
-            } finally {
-                setIsLoading(false);
-            }
-        };
-      
-        fetchSnippets();
-    }, [toast, router]);
+        setIsCompiling(true);
+        setOutput('Compiling and running...');
 
-    const handleSnippetChange = (snippetId: string) => {
-        const snippet = snippets.find(s => s.id === snippetId);
-        if (snippet) {
-            setSelectedSnippet(snippet);
-            setCode(snippet.code);
-            setAnalysis('');
-        }
-    };
-
-    const handleAnalysis = async () => {
-        setIsAnalyzing(true);
-        setAnalysis('Analyzing your code...');
         try {
-            const result = await suggestCodeImprovements({ code });
-            setAnalysis(result.suggestions);
+            const exit_code = tcc.current.compile(code);
+            if (exit_code !== 0) {
+                const error_msg = tcc.current.get_error_message();
+                setOutput(`Compilation failed:\\n${error_msg}`);
+                setIsCompiling(false);
+                return;
+            }
+
+            const program_output = tcc.current.run();
+            setOutput(`Program exited with code 0.\\nOutput:\\n-------\\n${program_output}`);
+
         } catch (e: any) {
-            setAnalysis(`An error occurred during analysis: ${e.message}`);
-             toast({ title: "Analysis Failed", description: "Could not analyze the code.", variant: "destructive" });
+            console.error("Compilation/Execution error:", e);
+            setOutput(`An unexpected error occurred: ${e.message}`);
+            toast({ title: "Error", description: "An unexpected error occurred during execution.", variant: "destructive" });
         } finally {
-            setIsAnalyzing(false);
+            setIsCompiling(false);
         }
     };
 
     return (
-        <div className="flex flex-col min-h-screen">
-            <SiteHeader />
-            <main className="flex-1 container mx-auto px-4 py-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Round 2: Debugging Challenge</CardTitle>
-                        <CardDescription>Find the bug in the snippet, fix it, and use the AI assistant to analyze your solution.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {isLoading ? (
-                            <div className="col-span-2 flex justify-center items-center h-64">
-                                <Loader2 className="animate-spin" size={32} />
-                                <span className='ml-4'>Loading Challenges...</span>
+        <>
+            <Script src="/tcc-bundle.js" onReady={handleScriptLoad} strategy="lazyOnload" />
+            <div className="flex flex-col min-h-screen">
+                <SiteHeader />
+                <main className="flex-1 container mx-auto px-4 py-8">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Round 2: Debugging & Compilation</CardTitle>
+                            <CardDescription>
+                                Find and fix the bug in the code, then compile and run it. 
+                                The initial code is just a placeholder.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-1 gap-6">
+                            <div className="space-y-4">
+                                <Label htmlFor="code-editor">Your C Code</Label>
+                                <Textarea 
+                                    id="code-editor"
+                                    value={code}
+                                    onChange={(e) => setCode(e.target.value)}
+                                    className="font-code h-[350px] bg-muted/50"
+                                    placeholder="Write your C code here..."
+                                />
                             </div>
-                        ) : snippets.length === 0 ? (
-                             <p className='col-span-2'>The admin has not added any debugging challenges yet. Please wait.</p>
-                        ) : (
-                            <>
-                                <div className="space-y-4">
-                                     <Label>Select Snippet</Label>
-                                    <Select onValueChange={handleSnippetChange} defaultValue={selectedSnippet?.id}>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select a snippet to debug" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {snippets.map((snippet) => (
-                                          <SelectItem key={snippet.id} value={snippet.id}>{snippet.title}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <Label>Your C Code</Label>
-                                     <Textarea 
-                                        value={code}
-                                        onChange={(e) => setCode(e.target.value)}
-                                        className="font-code h-[450px]"
-                                        placeholder="Write your C code here..."
-                                     />
-                                </div>
-                                <div className="space-y-4">
-                                    <Label>AI Analysis</Label>
-                                     <Card className='bg-muted h-full'>
-                                        <CardContent className="p-4">
-                                           <pre className="whitespace-pre-wrap font-code text-sm h-full">
-                                                <code>{analysis}</code>
-                                           </pre>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            </>
-                        )}
-                    </CardContent>
-                     {snippets.length > 0 && (
+                            <div className="space-y-4">
+                                <Label htmlFor="output">Output</Label>
+                                <Card id="output" className='bg-black h-[200px] text-white font-code p-4 overflow-auto'>
+                                    <pre className="whitespace-pre-wrap">
+                                        {output}
+                                    </pre>
+                                </Card>
+                            </div>
+                        </CardContent>
                         <CardFooter className='border-t pt-6 flex justify-between'>
-                             <Button onClick={handleAnalysis} disabled={isAnalyzing}>
-                                {isAnalyzing ? <Loader2 className='animate-spin' /> : <Play />}
-                                {isAnalyzing ? 'Analyzing...' : 'Analyze Code'}
+                            <Button onClick={handleRunCode} disabled={isCompiling || !isCompilerReady}>
+                                {isCompiling ? <Loader2 className='animate-spin' /> : <Play />}
+                                {isCompiling ? 'Running...' : 'Compile & Run'}
                             </Button>
                         </CardFooter>
-                     )}
-                </Card>
-            </main>
-        </div>
+                    </Card>
+                </main>
+            </div>
+        </>
     );
 }
