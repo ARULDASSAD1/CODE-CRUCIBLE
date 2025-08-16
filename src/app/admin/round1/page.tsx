@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const mcqSchema = z.object({
