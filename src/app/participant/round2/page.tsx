@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { getRound2Snippets, Round2Snippet, Participant } from '@/app/actions';
-import { Loader2 } from 'lucide-react';
+import { suggestCodeImprovements } from '@/ai/flows/suggest-code-improvements';
+import { Loader2, Wand2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
   Select,
@@ -18,14 +19,15 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function ParticipantRound2() {
     const [snippets, setSnippets] = useState<Round2Snippet[]>([]);
     const [selectedSnippet, setSelectedSnippet] = useState<Round2Snippet | null>(null);
     const [code, setCode] = useState('');
-    const [output, setOutput] = useState('');
+    const [aiFeedback, setAiFeedback] = useState('');
     const [isLoading, setIsLoading] = useState(true);
-    const [isCompiling, setIsCompiling] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [participant, setParticipant] = useState<Participant | null>(null);
     const { toast } = useToast();
@@ -62,13 +64,22 @@ export default function ParticipantRound2() {
         if (snippet) {
             setSelectedSnippet(snippet);
             setCode(snippet.code);
-            setOutput('');
+            setAiFeedback('');
         }
     };
 
-    const handleCompile = async () => {
-        setOutput('Compiler is not configured. Please contact an administrator.');
-        toast({ title: "Compiler Not Available", description: "The C compiler has not been set up.", variant: "destructive"});
+    const handleAnalyze = async () => {
+        setIsAnalyzing(true);
+        setAiFeedback('');
+        try {
+            const result = await suggestCodeImprovements({ code });
+            setAiFeedback(result.suggestions);
+            toast({ title: "Analysis Complete", description: "The AI has provided feedback below." });
+        } catch (error) {
+            toast({ title: "Analysis Failed", description: "Could not get AI feedback. Please try again.", variant: "destructive" });
+        } finally {
+            setIsAnalyzing(false);
+        }
     };
 
     const handleSubmit = async () => {
@@ -92,7 +103,7 @@ export default function ParticipantRound2() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Round 2: Debugging Challenge</CardTitle>
-                        <CardDescription>Fix the bugs in the selected C code snippet so it compiles and runs correctly.</CardDescription>
+                        <CardDescription>Fix the bugs in the selected C code snippet. Use the AI analyzer to get feedback on your solution.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {isLoadingResources ? (
@@ -127,17 +138,34 @@ export default function ParticipantRound2() {
                                 </div>
                                 <div className="space-y-4">
                                      <div className="flex gap-4">
-                                        <Button onClick={handleCompile} disabled={isCompiling || !code}>
-                                            {isCompiling && <Loader2 className="animate-spin" />}
-                                            {isCompiling ? 'Compiling...' : 'Compile & Run'}
+                                        <Button onClick={handleAnalyze} disabled={isAnalyzing || !code}>
+                                            {isAnalyzing && <Loader2 className="animate-spin" />}
+                                            <Wand2 />
+                                            {isAnalyzing ? 'Analyzing...' : 'Analyze with AI'}
                                         </Button>
                                     </div>
-                                    <Label>Output</Label>
+                                    <Label>AI Feedback</Label>
                                     <Card className='bg-muted'>
                                         <CardContent className="p-4">
-                                            <pre className="text-sm font-code h-[400px] whitespace-pre-wrap overflow-auto">
-                                                {output || "Output will be displayed here."}
-                                            </pre>
+                                             {isAnalyzing && (
+                                                <div className="flex justify-center items-center h-[400px]">
+                                                    <Loader2 className="animate-spin" size={24} />
+                                                    <span className="ml-2">AI is thinking...</span>
+                                                </div>
+                                            )}
+                                            {aiFeedback ? (
+                                                <Alert>
+                                                    <Wand2 />
+                                                    <AlertTitle>AI Analysis</AlertTitle>
+                                                    <AlertDescription className="whitespace-pre-wrap font-code">
+                                                        {aiFeedback}
+                                                    </AlertDescription>
+                                                </Alert>
+                                            ) : !isAnalyzing && (
+                                                <pre className="text-sm font-code h-[400px] whitespace-pre-wrap overflow-auto">
+                                                    Click "Analyze with AI" to get feedback on your code.
+                                                </pre>
+                                            )}
                                         </CardContent>
                                     </Card>
                                 </div>
@@ -146,7 +174,7 @@ export default function ParticipantRound2() {
                     </CardContent>
                      {snippets.length > 0 && (
                         <CardFooter className='border-t pt-6 flex justify-end'>
-                            <Button onClick={handleSubmit} disabled={isSubmitting || isCompiling}>
+                            <Button onClick={handleSubmit} disabled={isSubmitting || isAnalyzing}>
                                 {isSubmitting && <Loader2 className="animate-spin" />}
                                 {isSubmitting ? 'Submitting...' : 'Submit Final Code'}
                             </Button>
