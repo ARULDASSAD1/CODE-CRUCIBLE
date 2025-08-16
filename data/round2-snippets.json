@@ -1,0 +1,7 @@
+[
+  {
+    "title": "array average",
+    "code": "#include <stdio.h>\nint main() {\n    int n,i;\n    int arr[100];\n    int sum; // BUG: uninitialized\n    printf(\"Enter count: \");\n    scanf(\"%d\", &n);\n    for(i=0; i<=n; i++){ // BUG: off-by-one, writes one extra element\n        printf(\"arr[%d] = \", i);\n        scanf(\"%d\", &arr[i]);\n        sum += arr[i];\n    }\n    float avg = sum / n; // BUG: integer division\n    printf(\"Average = %f\\n\", avg);\n    return 0;\n}\n",
+    "id": "2025-08-16T19:04:18.895Z0.7859607145952157"
+  }
+]

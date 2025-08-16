@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/select"
 import { Label } from '@/components/ui/label';
 
-
 export default function ParticipantRound2() {
     const [snippets, setSnippets] = useState<Round2Snippet[]>([]);
     const [selectedSnippet, setSelectedSnippet] = useState<Round2Snippet | null>(null);
@@ -35,8 +34,7 @@ export default function ParticipantRound2() {
     useEffect(() => {
         const participantDetails = localStorage.getItem('participantDetails');
         if (participantDetails) {
-            const parsedDetails = JSON.parse(participantDetails);
-            setParticipant(parsedDetails);
+            setParticipant(JSON.parse(participantDetails));
         } else {
             router.replace('/participant/register');
         }
@@ -47,7 +45,6 @@ export default function ParticipantRound2() {
                 const fetchedSnippets = await getRound2Snippets();
                 setSnippets(fetchedSnippets);
                 if (fetchedSnippets.length > 0) {
-                    // Automatically select the first snippet
                     setSelectedSnippet(fetchedSnippets[0]);
                     setCode(fetchedSnippets[0].code);
                 }
@@ -70,20 +67,8 @@ export default function ParticipantRound2() {
     };
 
     const handleCompile = async () => {
-        setIsCompiling(true);
-        setOutput('');
-        // Placeholder for WASM compilation logic
-        // In a real scenario, this would call a WASM C compiler library.
-        setTimeout(() => {
-            // This is a mock response.
-            if (code.includes('main()')) {
-                 setOutput("Compilation successful.\nOutput:\nHello, World!");
-            } else {
-                 setOutput("Error: Missing main function.");
-            }
-            toast({ title: "Code Compiled", description: "Check the output below." });
-            setIsCompiling(false);
-        }, 1500);
+        setOutput('Compiler is not configured. Please contact an administrator.');
+        toast({ title: "Compiler Not Available", description: "The C compiler has not been set up.", variant: "destructive"});
     };
 
     const handleSubmit = async () => {
@@ -98,6 +83,8 @@ export default function ParticipantRound2() {
         }, 1000);
     }
 
+    const isLoadingResources = isLoading;
+
     return (
         <div className="flex flex-col min-h-screen">
             <SiteHeader />
@@ -108,9 +95,10 @@ export default function ParticipantRound2() {
                         <CardDescription>Fix the bugs in the selected C code snippet so it compiles and runs correctly.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {isLoading ? (
+                        {isLoadingResources ? (
                             <div className="col-span-2 flex justify-center items-center h-64">
                                 <Loader2 className="animate-spin" size={32} />
+                                <span className='ml-4'>Loading Challenges...</span>
                             </div>
                         ) : snippets.length === 0 ? (
                              <p className='col-span-2'>The admin has not added any debugging challenges yet. Please wait.</p>
