@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { getRound2Snippets, Round2Snippet, Participant } from '@/app/actions';
-import { Loader2, Play, Terminal } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
   Select,
@@ -18,16 +18,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { suggestCodeImprovements } from '@/ai/flows/suggest-code-improvements';
 
 export default function ParticipantRound2() {
     const [snippets, setSnippets] = useState<Round2Snippet[]>([]);
     const [selectedSnippet, setSelectedSnippet] = useState<Round2Snippet | null>(null);
     const [code, setCode] = useState('');
-    const [output, setOutput] = useState('');
     const [isLoading, setIsLoading] = useState(true);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [participant, setParticipant] = useState<Participant | null>(null);
 
@@ -66,21 +62,6 @@ export default function ParticipantRound2() {
         if (snippet) {
             setSelectedSnippet(snippet);
             setCode(snippet.code);
-            setOutput('');
-        }
-    };
-
-    const handleAnalyzeCode = async () => {
-        setIsAnalyzing(true);
-        setOutput('');
-        try {
-            const result = await suggestCodeImprovements({ code });
-            setOutput(result.suggestions);
-        } catch (error: any) {
-            setOutput(`An error occurred: \n${error.message}`);
-            toast({ title: "Analysis Failed", description: "Could not analyze the code.", variant: "destructive" });
-        } finally {
-            setIsAnalyzing(false);
         }
     };
 
@@ -92,11 +73,8 @@ export default function ParticipantRound2() {
         setTimeout(() => {
             toast({ title: "Code Submitted!", description: "Your solution has been saved."});
             setIsSubmitting(false);
-            // router.push('/participant'); // Optional: redirect after submission
         }, 1000);
     }
-
-    const isLoadingResources = isLoading;
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -105,10 +83,10 @@ export default function ParticipantRound2() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Round 2: Debugging Challenge</CardTitle>
-                        <CardDescription>Fix the bugs in the selected C code snippet. Use the AI analyzer to get feedback.</CardDescription>
+                        <CardDescription>Find and fix the bugs in the selected C code snippet.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {isLoadingResources ? (
+                        {isLoading ? (
                             <div className="col-span-2 flex justify-center items-center h-64">
                                 <Loader2 className="animate-spin" size={32} />
                                 <span className='ml-4'>Loading Challenges...</span>
@@ -139,30 +117,12 @@ export default function ParticipantRound2() {
                                     />
                                 </div>
                                 <div className="space-y-4">
-                                     <div className="flex gap-4">
-                                        <Button onClick={handleAnalyzeCode} disabled={isAnalyzing || !code}>
-                                            {isAnalyzing && <Loader2 className="animate-spin" />}
-                                            <Play />
-                                            {isAnalyzing ? 'Analyzing...' : 'Analyze Code'}
-                                        </Button>
-                                    </div>
-                                    <Label>AI Feedback</Label>
+                                    <Label>Instructions</Label>
                                     <Card className='bg-muted'>
                                         <CardContent className="p-4">
-                                            <Alert>
-                                                <Terminal />
-                                                <AlertTitle>Analysis</AlertTitle>
-                                                <AlertDescription className="whitespace-pre-wrap font-code text-sm h-[400px] overflow-auto">
-                                                    {isAnalyzing ? (
-                                                        <div className="flex justify-center items-center h-full">
-                                                            <Loader2 className="animate-spin" size={24} />
-                                                            <span className="ml-2">Executing...</span>
-                                                        </div>
-                                                    ) : (
-                                                        output || 'Click "Analyze Code" to get feedback.'
-                                                    )}
-                                                </AlertDescription>
-                                            </Alert>
+                                            <div className="whitespace-pre-wrap font-code text-sm h-[400px] overflow-auto">
+                                                <p>Edit the code on the left to fix the bugs. Once you are confident in your solution, click the "Submit Final Code" button.</p>
+                                            </div>
                                         </CardContent>
                                     </Card>
                                 </div>
@@ -171,7 +131,7 @@ export default function ParticipantRound2() {
                     </CardContent>
                      {snippets.length > 0 && (
                         <CardFooter className='border-t pt-6 flex justify-end'>
-                            <Button onClick={handleSubmit} disabled={isSubmitting || isAnalyzing}>
+                            <Button onClick={handleSubmit} disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="animate-spin" />}
                                 {isSubmitting ? 'Submitting...' : 'Submit Final Code'}
                             </Button>
