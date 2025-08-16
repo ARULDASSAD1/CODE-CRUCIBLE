@@ -11,15 +11,23 @@ import { ListChecks, Bug, Code, Loader2 } from "lucide-react";
 export default function ParticipantPortal() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [participantName, setParticipantName] = useState('');
 
   useEffect(() => {
     const participantDetails = localStorage.getItem('participantDetails');
     if (!participantDetails) {
       router.replace('/participant/register');
     } else {
+      setParticipantName(JSON.parse(participantDetails).teamName);
       setLoading(false);
     }
   }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('participantDetails');
+    router.push('/');
+  };
+
 
   if (loading) {
     return (
@@ -37,13 +45,16 @@ export default function ParticipantPortal() {
       <SiteHeader />
       <main className="flex-1 w-full container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-10">
-            <h1 className="font-headline text-4xl md:text-5xl font-bold tracking-tight">
-              Participant Portal
-            </h1>
-            <p className="mt-3 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Welcome, contestant! Here are the rounds.
-            </p>
+          <div className="flex justify-between items-center mb-10">
+            <div className="text-left">
+              <h1 className="font-headline text-4xl md:text-5xl font-bold tracking-tight">
+                Participant Portal
+              </h1>
+              <p className="mt-3 text-lg text-muted-foreground max-w-2xl mx-auto">
+                Welcome, {participantName}! Here are the rounds.
+              </p>
+            </div>
+            <Button variant="outline" onClick={handleLogout}>Logout</Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
