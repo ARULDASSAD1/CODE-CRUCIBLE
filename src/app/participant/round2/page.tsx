@@ -2,12 +2,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import Script from 'next/script';
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { getRound2Snippet } from '@/app/actions';
+import { getRound2Snippet, Round2Snippet } from '@/app/actions';
 import { Loader2, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
@@ -15,13 +14,15 @@ import { Textarea } from '@/components/ui/textarea';
 
 declare global {
   interface Window {
-    TCC: any;
+    TCC: {
+        init: () => Promise<any>;
+    };
   }
 }
 
 export default function ParticipantRound2() {
+    const [snippet, setSnippet] = useState<Round2Snippet | null>(null);
     const [code, setCode] = useState('');
-    const [snippetTitle, setSnippetTitle] = useState('');
     const [output, setOutput] = useState('Compiler not yet loaded. Please wait...');
     const [isLoading, setIsLoading] = useState(true);
     const [isCompiling, setIsCompiling] = useState(false);
@@ -39,13 +40,12 @@ export default function ParticipantRound2() {
 
         async function fetchSnippet() {
             try {
-                const snippet = await getRound2Snippet();
-                if (snippet) {
-                    setCode(snippet.code);
-                    setSnippetTitle(snippet.title);
+                const fetchedSnippet = await getRound2Snippet();
+                if (fetchedSnippet) {
+                    setSnippet(fetchedSnippet);
+                    setCode(fetchedSnippet.code);
                 } else {
                     setCode('// No debugging snippets have been added by the admin yet.');
-                    setSnippetTitle('No Snippet Available');
                 }
             } catch {
                 toast({ title: "Error", description: "Could not load debugging snippet.", variant: "destructive" });
@@ -56,12 +56,12 @@ export default function ParticipantRound2() {
         }
         fetchSnippet();
 
-    }, [router, toast]);
-    
-    useEffect(() => {
-        const intervalId = setInterval(() => {
+        // Manually create and append the script to ensure onload fires reliably
+        const script = document.createElement('script');
+        script.src = '/tcc-bundle.js';
+        script.async = true;
+        script.onload = () => {
             if (window.TCC && typeof window.TCC.init === 'function') {
-                clearInterval(intervalId);
                 window.TCC.init().then((loadedTcc: any) => {
                     tcc.current = loadedTcc;
                     setIsCompilerReady(true);
@@ -72,11 +72,23 @@ export default function ParticipantRound2() {
                     setOutput('Error: Could not initialize the C compiler.');
                     toast({ title: "Compiler Error", description: "Failed to load the C compiler.", variant: "destructive" });
                 });
+            } else {
+                 console.error("TCC script loaded, but window.TCC.init is not a function.");
+                 setOutput('Error: TCC script loaded incorrectly.');
             }
-        }, 100); // Check every 100ms
+        };
+        script.onerror = () => {
+            setOutput('Fatal Error: Could not load the compiler script.');
+            toast({ title: "Fatal Error", description: "Could not load tcc-bundle.js.", variant: "destructive" });
+        };
+        document.body.appendChild(script);
 
-        return () => clearInterval(intervalId); // Cleanup on unmount
-    }, [toast]);
+        // Cleanup the script when the component unmounts
+        return () => {
+            document.body.removeChild(script);
+        }
+
+    }, [router, toast]);
     
     const handleRunCode = () => {
         if (!tcc.current) {
@@ -88,16 +100,28 @@ export default function ParticipantRound2() {
         setOutput('Compiling and running...');
 
         try {
+            // TCC's compile function can be noisy, so we temporarily redirect console.log
+            let captured_stdout = "";
+            const stdout_backup = tcc.current.env.write;
+            tcc.current.env.write = (s: string) => { captured_stdout += s + "\n"; };
+
             const exit_code = tcc.current.compile(code);
+
+            // Restore console.log
+            tcc.current.env.write = stdout_backup;
+
+
             if (exit_code !== 0) {
-                const error_msg = tcc.current.get_error_message();
+                const error_msg = captured_stdout || "Compilation failed. Check your code for syntax errors.";
                 setOutput(`Compilation failed:\n${error_msg}`);
                 setIsCompiling(false);
                 return;
             }
 
-            const program_output = tcc.current.run();
-            setOutput(`Program exited with code 0.\nOutput:\n-------\n${program_output}`);
+            // If compilation is successful, run the program
+            captured_stdout = ""; // Reset for program output
+            const run_exit_code = tcc.current.run();
+            setOutput(`Program exited with code ${run_exit_code}.\nOutput:\n-------\n${captured_stdout}`);
 
         } catch (e: any) {
             console.error("Compilation/Execution error:", e);
@@ -109,53 +133,50 @@ export default function ParticipantRound2() {
     };
 
     return (
-        <>
-            <Script src="/tcc-bundle.js" strategy="lazyOnload" />
-            <div className="flex flex-col min-h-screen">
-                <SiteHeader />
-                <main className="flex-1 container mx-auto px-4 py-8">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Round 2: Debugging Challenge - {snippetTitle}</CardTitle>
-                            <CardDescription>
-                                Find and fix the bug(s) in the C code below, then compile and run it to verify your solution.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-1 gap-6">
-                            {isLoading ? (
-                                <div className="flex justify-center items-center h-[350px]">
-                                    <Loader2 className="animate-spin" size={32} />
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <Label htmlFor="code-editor">Your C Code</Label>
-                                    <Textarea 
-                                        id="code-editor"
-                                        value={code}
-                                        onChange={(e) => setCode(e.target.value)}
-                                        className="font-code h-[350px] bg-muted/50"
-                                        placeholder="Write your C code here..."
-                                    />
-                                </div>
-                            )}
-                            <div className="space-y-4">
-                                <Label htmlFor="output">Output</Label>
-                                <Card id="output" className='bg-black h-[200px] text-white font-code p-4 overflow-auto'>
-                                    <pre className="whitespace-pre-wrap">
-                                        {output}
-                                    </pre>
-                                </Card>
+        <div className="flex flex-col min-h-screen">
+            <SiteHeader />
+            <main className="flex-1 container mx-auto px-4 py-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Round 2: Debugging Challenge - {snippet?.title || 'Loading...'}</CardTitle>
+                        <CardDescription>
+                            Find and fix the bug(s) in the C code below, then compile and run it to verify your solution.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 gap-6">
+                        {isLoading ? (
+                            <div className="flex justify-center items-center h-[350px]">
+                                <Loader2 className="animate-spin" size={32} />
                             </div>
-                        </CardContent>
-                        <CardFooter className='border-t pt-6 flex justify-between'>
-                            <Button onClick={handleRunCode} disabled={isCompiling || !isCompilerReady || isLoading}>
-                                {isCompiling ? <Loader2 className='animate-spin' /> : <Play />}
-                                {isCompiling ? 'Running...' : 'Compile & Run'}
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                </main>
-            </div>
-        </>
+                        ) : (
+                            <div className="space-y-4">
+                                <Label htmlFor="code-editor">Your C Code</Label>
+                                <Textarea 
+                                    id="code-editor"
+                                    value={code}
+                                    onChange={(e) => setCode(e.target.value)}
+                                    className="font-code h-[350px] bg-muted/50"
+                                    placeholder="Write your C code here..."
+                                />
+                            </div>
+                        )}
+                        <div className="space-y-4">
+                            <Label htmlFor="output">Output</Label>
+                            <Card id="output" className='bg-black h-[200px] text-white font-code p-4 overflow-auto'>
+                                <pre className="whitespace-pre-wrap">
+                                    {output}
+                                </pre>
+                            </Card>
+                        </div>
+                    </CardContent>
+                    <CardFooter className='border-t pt-6 flex justify-between'>
+                        <Button onClick={handleRunCode} disabled={isCompiling || !isCompilerReady || isLoading}>
+                            {isCompiling ? <Loader2 className='animate-spin' /> : <Play />}
+                            {isCompiling ? 'Running...' : 'Compile & Run'}
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </main>
+        </div>
     );
 }
