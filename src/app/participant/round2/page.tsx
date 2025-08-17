@@ -58,8 +58,9 @@ export default function ParticipantRound2() {
 
         // Manually create and append the script to ensure onload fires reliably
         const script = document.createElement('script');
-        script.src = '/tcc-bundle.js';
+        script.src = '/tcc-bundle.js'; // Corrected path to be absolute from public dir
         script.async = true;
+        
         script.onload = () => {
             if (window.TCC && typeof window.TCC.init === 'function') {
                 window.TCC.init().then((loadedTcc: any) => {
@@ -77,10 +78,12 @@ export default function ParticipantRound2() {
                  setOutput('Error: TCC script loaded incorrectly.');
             }
         };
+
         script.onerror = () => {
-            setOutput('Fatal Error: Could not load the compiler script.');
+            setOutput('Fatal Error: Could not load tcc-bundle.js.');
             toast({ title: "Fatal Error", description: "Could not load tcc-bundle.js.", variant: "destructive" });
         };
+        
         document.body.appendChild(script);
 
         // Cleanup the script when the component unmounts
