@@ -59,18 +59,19 @@ export default function ParticipantRound2() {
         setOutput('Compiling...');
         try {
             const result = await compileAndRunCode(code);
+            const combinedOutput = (result.stdout || '') + (result.stderr || '');
+            
+            setOutput(combinedOutput);
 
-            setOutput(result.output);
-
-            if (result.success) {
+            if (!result.error && !result.stderr) {
                 toast({
                     title: "Success",
                     description: "Code compiled and ran successfully.",
                 });
             } else {
                  toast({
-                    title: "Error",
-                    description: "Your code has compilation or runtime errors.",
+                    title: "Finished",
+                    description: "Code execution finished, check output for errors.",
                     variant: "destructive",
                 });
             }

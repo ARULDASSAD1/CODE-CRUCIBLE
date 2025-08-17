@@ -1,7 +1,7 @@
 
 'use server';
 
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { promisify } from 'util';
@@ -23,6 +23,8 @@ export async function compileAndRunC(code: string): Promise<{ stdout: string, st
     const timestamp = Date.now();
     const cFilePath = path.join(tempDir, `code_${timestamp}.c`);
     const exeFilePath = path.join(tempDir, `program_${timestamp}`);
+    // On Windows, the executable will have a .exe extension
+    const finalExePath = process.platform === 'win32' ? `${exeFilePath}.exe` : exeFilePath;
 
     try {
         // Write the C code to a temporary file
@@ -30,26 +32,52 @@ export async function compileAndRunC(code: string): Promise<{ stdout: string, st
 
         // Compile the C code using gcc
         try {
-             await execAsync(`gcc ${cFilePath} -o ${exeFilePath}`);
+             await execAsync(`gcc ${cFilePath} -o ${finalExePath}`);
         } catch(compilationError: any) {
             // If compilation fails, return the compiler error
              return { stdout: '', stderr: compilationError.stderr, error: compilationError };
         }
 
         // Execute the compiled program
-        try {
-            const { stdout, stderr } = await execAsync(exeFilePath);
-            return { stdout, stderr };
-        } catch(runtimeError: any) {
-            // If execution fails, return the runtime error
-            return { stdout: '', stderr: runtimeError.stderr, error: runtimeError };
-        }
+        return new Promise((resolve) => {
+            const child = spawn(finalExePath);
+            let stdout = '';
+            let stderr = '';
+
+            // Provide some default input to satisfy scanf
+            // This is a simple example for the default buggy code.
+            // 5 numbers: 10, 20, 30, 40, 50
+            child.stdin.write('5\n10\n20\n30\n40\n50\n');
+            child.stdin.end();
+
+            child.stdout.on('data', (data) => {
+                stdout += data.toString();
+            });
+
+            child.stderr.on('data', (data) => {
+                stderr += data.toString();
+            });
+
+            child.on('close', (code) => {
+                resolve({ stdout, stderr });
+            });
+            
+            child.on('error', (err) => {
+                resolve({ stdout: '', stderr: err.message, error: err });
+            });
+
+            // Set a timeout to prevent hanging forever
+            setTimeout(() => {
+                child.kill(); 
+                resolve({ stdout, stderr: stderr + '\nError: Process timed out after 5 seconds.'});
+            }, 5000); 
+        });
 
     } finally {
         // Cleanup: delete the temporary files
         await Promise.all([
             fs.unlink(cFilePath).catch(() => {}), // Ignore errors if file doesn't exist
-            fs.unlink(exeFilePath).catch(() => {})
+            fs.unlink(finalExePath).catch(() => {})
         ]);
     }
 }
