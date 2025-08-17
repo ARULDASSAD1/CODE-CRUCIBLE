@@ -14,8 +14,8 @@ import { Badge } from '@/components/ui/badge';
 
 type RankedParticipant = Participant & {
     totalScore: number;
+    totalTimeSeconds: number;
     rank: number;
-    lastSubmissionTime?: string;
 };
 
 export default function Scoreboard() {
@@ -40,44 +40,33 @@ export default function Scoreboard() {
     }, []);
 
     const rankedParticipants = useMemo((): RankedParticipant[] => {
-        const getLatestTime = (p: Participant) => {
-             const times = [
-                p.round1?.submittedAt,
-                p.round2?.submittedAt,
-                p.round3?.submittedAt
-            ].filter(Boolean).map(t => new Date(t!).getTime());
-
-            if (times.length === 0) return undefined;
-            return new Date(Math.max(...times));
-        }
-
         const withScores = participants.map(p => ({
             ...p,
             totalScore: (p.round1?.score ?? 0) + (p.round2?.score ?? 0) + (p.round3?.score ?? 0),
-            lastSubmissionTime: getLatestTime(p)?.toLocaleString()
+            totalTimeSeconds: (p.round1?.timeTakenSeconds ?? 0) + (p.round2?.timeTakenSeconds ?? 0) + (p.round3?.timeTakenSeconds ?? 0)
         }));
 
         // Separate disqualified participants
         const active = withScores.filter(p => !p.disqualified);
         const disqualified = withScores.filter(p => p.disqualified);
 
-        // Sort active participants by score, then by the earliest final submission time
+        // Sort active participants by score (desc), then by total time (asc)
         active.sort((a, b) => {
             if (b.totalScore !== a.totalScore) {
                 return b.totalScore - a.totalScore;
             }
-            const timeA = getLatestTime(a)?.getTime() || 0;
-            const timeB = getLatestTime(b)?.getTime() || 0;
-            return timeA - timeB;
+            return a.totalTimeSeconds - b.totalTimeSeconds;
         });
 
         // Assign ranks
         let lastScore = -1;
+        let lastTime = -1;
         let lastRank = 0;
         const ranked = active.map((p, index) => {
-            if (p.totalScore !== lastScore) {
+            if (p.totalScore !== lastScore || p.totalTimeSeconds !== lastTime) {
                 lastRank = index + 1;
                 lastScore = p.totalScore;
+                lastTime = p.totalTimeSeconds;
             }
             return { ...p, rank: lastRank };
         });
@@ -87,6 +76,13 @@ export default function Scoreboard() {
 
         return [...ranked, ...disqualifiedRanked];
     }, [participants]);
+
+    const formatTime = (seconds: number) => {
+        if (seconds === 0) return 'N/A';
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}m ${remainingSeconds}s`;
+    }
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -106,7 +102,7 @@ export default function Scoreboard() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Scoreboard</CardTitle>
-                        <CardDescription>Live scores and rankings of all participants. Sorted by highest score and then by earliest submission time.</CardDescription>
+                        <CardDescription>Live scores and rankings. Tie-breakers are decided by the fastest total completion time.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {isLoading ? (
@@ -126,7 +122,7 @@ export default function Scoreboard() {
                                         <TableHead>R2 Score</TableHead>
                                         <TableHead>R3 Score</TableHead>
                                         <TableHead>Total Score</TableHead>
-                                        <TableHead>Last Submission</TableHead>
+                                        <TableHead>Total Time</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -141,7 +137,7 @@ export default function Scoreboard() {
                                             <TableCell>{p.round2?.score ?? 'N/A'}</TableCell>
                                             <TableCell>{p.round3?.score ?? 'N/A'}</TableCell>
                                             <TableCell className="font-bold text-lg text-primary">{p.totalScore}</TableCell>
-                                            <TableCell>{p.lastSubmissionTime ?? 'N/A'}</TableCell>
+                                            <TableCell>{formatTime(p.totalTimeSeconds)}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

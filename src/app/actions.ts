@@ -217,16 +217,19 @@ export type Participant = {
         score: number;
         answers: { questionId: string, answer: string }[];
         submittedAt: string; // ISO string
+        timeTakenSeconds: number;
     };
     round2?: {
         score: number;
         submissions: { snippetId: string, code: string, passed: boolean }[];
         submittedAt: string; // ISO string
+        timeTakenSeconds: number;
     };
     round3?: {
         score: number;
         submissions: { problemId: string, code: string, passed: boolean }[];
         submittedAt: string; // ISO string
+        timeTakenSeconds: number;
     };
     disqualified?: boolean;
 };
@@ -294,7 +297,7 @@ export async function toggleDisqualify(id: string): Promise<void> {
 }
 
 
-export async function submitRound1Answers(participantId: string, answers: { questionId: string, answer: string }[]) {
+export async function submitRound1Answers(participantId: string, answers: { questionId: string, answer: string }[], timeTakenSeconds: number) {
     const questions = await getMcqQuestions();
     let score = 0;
     for (const question of questions) {
@@ -314,7 +317,8 @@ export async function submitRound1Answers(participantId: string, answers: { ques
     participants[participantIndex].round1 = {
         score,
         answers,
-        submittedAt: new Date().toISOString()
+        submittedAt: new Date().toISOString(),
+        timeTakenSeconds,
     };
 
     await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
@@ -367,7 +371,7 @@ type Round2Submission = {
     code: string;
 }
 
-export async function submitRound2(participantId: string, submissions: Round2Submission[]) {
+export async function submitRound2(participantId: string, submissions: Round2Submission[], timeTakenSeconds: number) {
     const allSnippets = await getRound2Snippets();
     let score = 0;
     const detailedSubmissions: Participant['round2']['submissions'] = [];
@@ -404,7 +408,8 @@ export async function submitRound2(participantId: string, submissions: Round2Sub
     participants[participantIndex].round2 = {
         score,
         submissions: detailedSubmissions,
-        submittedAt: new Date().toISOString()
+        submittedAt: new Date().toISOString(),
+        timeTakenSeconds,
     };
 
     await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
@@ -433,7 +438,7 @@ type Round3Submission = {
     code: string;
 }
 
-export async function submitRound3(participantId: string, submissions: Round3Submission[]) {
+export async function submitRound3(participantId: string, submissions: Round3Submission[], timeTakenSeconds: number) {
     const allProblems = await getRound3Problems();
     let score = 0;
     const detailedSubmissions: Participant['round3']['submissions'] = [];
@@ -470,7 +475,8 @@ export async function submitRound3(participantId: string, submissions: Round3Sub
     participants[participantIndex].round3 = {
         score,
         submissions: detailedSubmissions,
-        submittedAt: new Date().toISOString()
+        submittedAt: new Date().toISOString(),
+        timeTakenSeconds,
     };
 
     await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');

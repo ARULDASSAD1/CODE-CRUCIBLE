@@ -16,13 +16,15 @@ type Answer = {
     answer: string;
 };
 
+const ROUND_DURATION_SECONDS = 20 * 60; // 20 minutes
+
 export default function ParticipantRound1() {
     const [questions, setQuestions] = useState<McqQuestion[]>([]);
     const [answers, setAnswers] = useState<Answer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [participant, setParticipant] = useState<Participant | null>(null);
-    const [timeLeft, setTimeLeft] = useState(20 * 60); // 20 minutes in seconds
+    const [timeLeft, setTimeLeft] = useState(ROUND_DURATION_SECONDS);
     const { toast } = useToast();
     const router = useRouter();
 
@@ -72,8 +74,10 @@ export default function ParticipantRound1() {
             description: "Your answers are being submitted.",
         });
 
+        const timeTaken = ROUND_DURATION_SECONDS - timeLeft;
+
         try {
-            const { score } = await submitRound1Answers(participant.id, answers);
+            const { score } = await submitRound1Answers(participant.id, answers, timeTaken);
             
             // Update local storage to mark round 1 as complete
             const updatedParticipant: Participant = {
@@ -81,7 +85,8 @@ export default function ParticipantRound1() {
                 round1: { 
                     score, 
                     answers, 
-                    submittedAt: new Date().toISOString()
+                    submittedAt: new Date().toISOString(),
+                    timeTakenSeconds: timeTaken,
                 }
             };
             localStorage.setItem('participantDetails', JSON.stringify(updatedParticipant));

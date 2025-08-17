@@ -30,6 +30,7 @@ type SubmissionState = {
 };
 
 const DEFAULT_CODE_SNIPPET = `#include <stdio.h>\n\nint main() {\n    // Write your code here\n    return 0;\n}\n`;
+const ROUND_DURATION_SECONDS = 20 * 60; // 20 minutes
 
 export default function ParticipantRound3() {
     const [problems, setProblems] = useState<Round3Problem[]>([]);
@@ -37,7 +38,7 @@ export default function ParticipantRound3() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [participant, setParticipant] = useState<Participant | null>(null);
-    const [timeLeft, setTimeLeft] = useState(20 * 60); // 20 minutes in seconds
+    const [timeLeft, setTimeLeft] = useState(ROUND_DURATION_SECONDS);
 
     const { toast } = useToast();
     const router = useRouter();
@@ -123,6 +124,8 @@ export default function ParticipantRound3() {
 
         setIsSubmitting(true);
         toast({ title: "Submitting Round 3...", description: "Your code is being evaluated." });
+        
+        const timeTaken = ROUND_DURATION_SECONDS - timeLeft;
 
         const finalSubmissions = Object.entries(submissions).map(([problemId, state]) => ({
             problemId,
@@ -130,9 +133,17 @@ export default function ParticipantRound3() {
         }));
 
         try {
-            const { score } = await submitRound3(participant.id, finalSubmissions);
+            const { score } = await submitRound3(participant.id, finalSubmissions, timeTaken);
 
-            const updatedParticipant: Participant = { ...participant };
+            const updatedParticipant: Participant = { 
+                ...participant,
+                round3: {
+                    score,
+                    submissions: finalSubmissions.map(s => ({...s, passed: false})), // This part is tricky, the passed status is on server
+                    submittedAt: new Date().toISOString(),
+                    timeTakenSeconds: timeTaken,
+                }
+            };
             localStorage.setItem('participantDetails', JSON.stringify(updatedParticipant));
 
             toast({ title: "Round 3 Submitted!", description: `You scored ${score} points. Redirecting...`, variant: "default" });
