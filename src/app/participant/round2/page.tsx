@@ -7,17 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getRound2Snippet, Round2Snippet } from '@/app/actions';
-import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
-
-// Helper function to normalize code for comparison
-const normalizeCode = (str: string) => {
-    // Remove all whitespace and newlines, and make it lowercase
-    return str.replace(/\s/g, '').toLowerCase();
-}
+import { validateCodeFix } from '@/ai/flows/suggest-code-improvements';
 
 export default function ParticipantRound2() {
     const [snippet, setSnippet] = useState<Round2Snippet | null>(null);
@@ -54,32 +49,39 @@ export default function ParticipantRound2() {
 
     }, [router, toast]);
     
-    const handleCheckCode = () => {
+    const handleCheckCode = async () => {
         if (!snippet) {
             toast({ title: "No Snippet Loaded", description: "Cannot check your code right now.", variant: "destructive" });
             return;
         }
 
         setIsChecking(true);
+        try {
+            const result = await validateCodeFix({
+                buggyCode: snippet.code,
+                fixedCode: code,
+            });
 
-        const isCorrect = normalizeCode(code) === normalizeCode(snippet.correctedCode);
-
-        setTimeout(() => {
-            if (isCorrect) {
+            if (result.isCorrect) {
                 toast({
                     title: "Correct!",
-                    description: "Your solution is correct. Great job!",
-                    className: "bg-green-600 text-white"
+                    description: result.reasoning,
+                    className: "bg-green-600 text-white",
                 });
             } else {
-                toast({
+                 toast({
                     title: "Incorrect",
-                    description: "Your solution doesn't match the expected output. Please try again.",
-                    variant: "destructive"
+                    description: result.reasoning,
+                    variant: "destructive",
                 });
             }
+
+        } catch (error) {
+            console.error("AI validation failed", error);
+            toast({ title: "Error", description: "Could not validate your code. Please try again.", variant: "destructive"});
+        } finally {
             setIsChecking(false);
-        }, 500); // Simulate a short delay
+        }
     };
 
     return (
@@ -112,7 +114,7 @@ export default function ParticipantRound2() {
                         )}
                     </CardContent>
                     <CardFooter className='border-t pt-6 flex justify-between'>
-                        <Button onClick={handleCheckCode} disabled={isChecking || isLoading}>
+                        <Button onClick={handleCheckCode} disabled={isChecking || isLoading || !snippet}>
                             {isChecking ? <Loader2 className='animate-spin' /> : <CheckCircle />}
                             {isChecking ? 'Checking...' : 'Submit & Check'}
                         </Button>
