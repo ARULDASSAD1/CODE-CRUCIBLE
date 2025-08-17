@@ -6,13 +6,12 @@ import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { getRound2Snippet, Round2Snippet } from '@/app/actions';
+import { getRound2Snippet, Round2Snippet, compileAndRunCode } from '@/app/actions';
 import { Loader2, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
-import { runCCode } from '@/ai/flows/run-c-code';
 
 export default function ParticipantRound2() {
     const [snippet, setSnippet] = useState<Round2Snippet | null>(null);
@@ -59,7 +58,7 @@ export default function ParticipantRound2() {
         setIsCompiling(true);
         setOutput('Compiling...');
         try {
-            const result = await runCCode({ code });
+            const result = await compileAndRunCode(code);
 
             setOutput(result.output);
 

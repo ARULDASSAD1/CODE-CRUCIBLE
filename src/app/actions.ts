@@ -3,6 +3,8 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
+import { compileAndRunC as compileAndRunCService } from '@/services/compiler';
+
 
 // This file will contain server actions for handling form submissions,
 // compiling code, and managing the "database" of questions and scores.
@@ -21,6 +23,24 @@ async function ensureDbReady() {
         await fs.mkdir(dataPath);
     }
 }
+
+// ============== CODE COMPILATION ==============
+
+export async function compileAndRunCode(code: string): Promise<{ output: string, success: boolean }> {
+    try {
+      const result = await compileAndRunCService(code);
+      return {
+        output: result.stdout || result.stderr,
+        success: !result.error,
+      };
+    } catch (error: any) {
+      return {
+        output: error.stderr || 'An unexpected error occurred during compilation.',
+        success: false,
+      };
+    }
+}
+
 
 // ============== INSTRUCTIONS ==============
 
