@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 type RankedParticipant = Participant & {
     totalScore: number;
     rank: number;
+    lastSubmissionTime?: string;
 };
 
 export default function Scoreboard() {
@@ -39,9 +40,21 @@ export default function Scoreboard() {
     }, []);
 
     const rankedParticipants = useMemo((): RankedParticipant[] => {
+        const getLatestTime = (p: Participant) => {
+             const times = [
+                p.round1?.submittedAt,
+                p.round2?.submittedAt,
+                p.round3?.submittedAt
+            ].filter(Boolean).map(t => new Date(t!).getTime());
+
+            if (times.length === 0) return undefined;
+            return new Date(Math.max(...times));
+        }
+
         const withScores = participants.map(p => ({
             ...p,
             totalScore: (p.round1?.score ?? 0) + (p.round2?.score ?? 0) + (p.round3?.score ?? 0),
+            lastSubmissionTime: getLatestTime(p)?.toLocaleString()
         }));
 
         // Separate disqualified participants
@@ -53,9 +66,9 @@ export default function Scoreboard() {
             if (b.totalScore !== a.totalScore) {
                 return b.totalScore - a.totalScore;
             }
-            const timeA = a.round3?.submittedAt || a.round2?.submittedAt || a.round1?.submittedAt || '';
-            const timeB = b.round3?.submittedAt || b.round2?.submittedAt || b.round1?.submittedAt || '';
-            return new Date(timeA).getTime() - new Date(timeB).getTime();
+            const timeA = getLatestTime(a)?.getTime() || 0;
+            const timeB = getLatestTime(b)?.getTime() || 0;
+            return timeA - timeB;
         });
 
         // Assign ranks
@@ -108,12 +121,12 @@ export default function Scoreboard() {
                                     <TableRow>
                                         <TableHead>Rank</TableHead>
                                         <TableHead>Team Name</TableHead>
-                                        <TableHead>Member Name</TableHead>
                                         <TableHead>College</TableHead>
                                         <TableHead>R1 Score</TableHead>
                                         <TableHead>R2 Score</TableHead>
                                         <TableHead>R3 Score</TableHead>
-                                        <TableHead className='font-bold'>Total Score</TableHead>
+                                        <TableHead>Total Score</TableHead>
+                                        <TableHead>Last Submission</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -123,12 +136,12 @@ export default function Scoreboard() {
                                                 {p.disqualified ? 'DQ' : p.rank}
                                             </TableCell>
                                             <TableCell>{p.teamName}</TableCell>
-                                            <TableCell>{p.name}</TableCell>
                                             <TableCell>{p.college}</TableCell>
                                             <TableCell>{p.round1?.score ?? 'N/A'}</TableCell>
                                             <TableCell>{p.round2?.score ?? 'N/A'}</TableCell>
                                             <TableCell>{p.round3?.score ?? 'N/A'}</TableCell>
                                             <TableCell className="font-bold text-lg text-primary">{p.totalScore}</TableCell>
+                                            <TableCell>{p.lastSubmissionTime ?? 'N/A'}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -140,4 +153,3 @@ export default function Scoreboard() {
         </div>
     )
 }
-
