@@ -26,9 +26,9 @@ async function ensureDbReady() {
 
 // ============== CODE COMPILATION ==============
 
-export async function compileAndRunCode(code: string): Promise<{ output: string, success: boolean }> {
+export async function compileAndRunCode(code: string, input: string): Promise<{ output: string, success: boolean }> {
     try {
-      const result = await compileAndRunCService(code);
+      const result = await compileAndRunCService(code, input);
       return {
         output: result.stdout || result.stderr,
         success: !result.error,

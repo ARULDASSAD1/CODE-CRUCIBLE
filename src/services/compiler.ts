@@ -15,9 +15,10 @@ const tempDir = path.join(process.cwd(), 'temp');
  * It writes the code to a temporary file, compiles it, runs it, and cleans up.
  *
  * @param code The C code to execute.
+ * @param input The manual input string to pass to the program's stdin.
  * @returns A promise that resolves with the stdout and stderr of the execution.
  */
-export async function compileAndRunC(code: string): Promise<{ stdout: string, stderr: string, error?: any }> {
+export async function compileAndRunC(code: string, input: string = ''): Promise<{ stdout: string, stderr: string, error?: any }> {
     await fs.mkdir(tempDir, { recursive: true });
 
     const timestamp = Date.now();
@@ -44,10 +45,10 @@ export async function compileAndRunC(code: string): Promise<{ stdout: string, st
             let stdout = '';
             let stderr = '';
 
-            // Provide some default input to satisfy scanf
-            // This is a simple example for the default buggy code.
-            // 5 numbers: 10, 20, 30, 40, 50
-            child.stdin.write('5\n10\n20\n30\n40\n50\n');
+            // Write the provided manual input to the program's stdin
+            if (input) {
+                child.stdin.write(input);
+            }
             child.stdin.end();
 
             child.stdout.on('data', (data) => {
