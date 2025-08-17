@@ -14,9 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 declare global {
   interface Window {
-    TCC: {
-        init: () => Promise<any>;
-    };
+    TCC: any;
   }
 }
 
@@ -56,9 +54,8 @@ export default function ParticipantRound2() {
         }
         fetchSnippet();
 
-        // Manually create and append the script to ensure onload fires reliably
         const script = document.createElement('script');
-        script.src = '/tcc-bundle.js'; // Corrected path to be absolute from public dir
+        script.src = '/tcc-bundle.js';
         script.async = true;
         
         script.onload = () => {
@@ -80,15 +77,16 @@ export default function ParticipantRound2() {
         };
 
         script.onerror = () => {
-            setOutput('Fatal Error: Could not load tcc-bundle.js.');
+            setOutput('Fatal Error: Could not load tcc-bundle.js. Check network connection or file path.');
             toast({ title: "Fatal Error", description: "Could not load tcc-bundle.js.", variant: "destructive" });
         };
         
         document.body.appendChild(script);
 
-        // Cleanup the script when the component unmounts
         return () => {
-            document.body.removeChild(script);
+            if (script.parentNode) {
+                script.parentNode.removeChild(script);
+            }
         }
 
     }, [router, toast]);
@@ -103,29 +101,20 @@ export default function ParticipantRound2() {
         setOutput('Compiling and running...');
 
         try {
-            // TCC's compile function can be noisy, so we temporarily redirect console.log
             let captured_stdout = "";
-            const stdout_backup = tcc.current.env.write;
-            tcc.current.env.write = (s: string) => { captured_stdout += s + "\n"; };
+            let captured_stderr = "";
+            
+            tcc.current.set_stdout(function(c: number) { captured_stdout += String.fromCharCode(c) });
+            tcc.current.set_stderr(function(c: number) { captured_stderr += String.fromCharCode(c) });
 
             const exit_code = tcc.current.compile(code);
-
-            // Restore console.log
-            tcc.current.env.write = stdout_backup;
-
-
+            
             if (exit_code !== 0) {
-                const error_msg = captured_stdout || "Compilation failed. Check your code for syntax errors.";
-                setOutput(`Compilation failed:\n${error_msg}`);
-                setIsCompiling(false);
-                return;
+                setOutput(`Compilation failed:\n${captured_stderr || "Check code for errors."}`);
+            } else {
+                 const run_exit_code = tcc.current.run("main");
+                 setOutput(`Program exited with code ${run_exit_code}.\nOutput:\n-------\n${captured_stdout}`);
             }
-
-            // If compilation is successful, run the program
-            captured_stdout = ""; // Reset for program output
-            const run_exit_code = tcc.current.run();
-            setOutput(`Program exited with code ${run_exit_code}.\nOutput:\n-------\n${captured_stdout}`);
-
         } catch (e: any) {
             console.error("Compilation/Execution error:", e);
             setOutput(`An unexpected error occurred: ${e.message}`);
@@ -176,6 +165,9 @@ export default function ParticipantRound2() {
                         <Button onClick={handleRunCode} disabled={isCompiling || !isCompilerReady || isLoading}>
                             {isCompiling ? <Loader2 className='animate-spin' /> : <Play />}
                             {isCompiling ? 'Running...' : 'Compile & Run'}
+                        </Button>
+                        <Button variant="outline" asChild>
+                           <Link href="/participant">Back to Portal</Link>
                         </Button>
                     </CardFooter>
                 </Card>
