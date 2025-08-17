@@ -57,8 +57,9 @@ export default function ParticipantRound2() {
 
         setIsChecking(true);
         try {
+            // This is now an offline check, not a real AI call.
             const result = await validateCodeFix({
-                buggyCode: snippet.code,
+                buggyCode: snippet.correctedCode, // We are sending corrected code here for comparison
                 fixedCode: code,
             });
 
@@ -77,7 +78,7 @@ export default function ParticipantRound2() {
             }
 
         } catch (error) {
-            console.error("AI validation failed", error);
+            console.error("Code validation failed", error);
             toast({ title: "Error", description: "Could not validate your code. Please try again.", variant: "destructive"});
         } finally {
             setIsChecking(false);
