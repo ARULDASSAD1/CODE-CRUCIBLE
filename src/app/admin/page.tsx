@@ -98,25 +98,21 @@ export default function AdminDashboard() {
                 <CardTitle className="flex items-center gap-2">
                   <ClipboardCheck /> Round 3: Coding
                 </CardTitle>
-                <CardDescription>Manage coding problems and test cases.</CardDescription>
+                <CardDescription>This feature is not yet available.</CardDescription>
               </CardHeader>
               <CardContent>
-                <Link href="/admin/round3" passHref>
-                  <Button className="w-full">Manage Round 3</Button>
-                </Link>
+                <Button className="w-full" disabled>Manage Round 3</Button>
               </CardContent>
             </Card>
-            <Card className="lg:col-span-3">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart2 /> Scoreboard & Event Control
+                  <BarChart2 /> Scoreboard
                 </CardTitle>
-                <CardDescription>View live scores and manage event state.</CardDescription>
+                <CardDescription>This feature is not yet available.</CardDescription>
               </CardHeader>
               <CardContent>
-                <Link href="/admin/scoreboard" passHref>
-                  <Button variant="secondary" className="w-full">View Scoreboard</Button>
-                </Link>
+                  <Button variant="secondary" className="w-full" disabled>View Scoreboard</Button>
               </CardContent>
             </Card>
           </div>
