@@ -124,12 +124,18 @@ export async function deleteMcqQuestions(ids: string[]): Promise<void> {
 
 // ============== ROUND 2: DEBUGGING ==============
 
+export type TestCase = {
+    input: string;
+    expectedOutput: string;
+};
+
 export type Round2Snippet = {
     id: string;
     title: string;
     code: string;
-    correctedCode: string;
-}
+    publicTestCases: TestCase[];
+    privateTestCases: TestCase[];
+};
 
 export async function getRound2Snippets(): Promise<Round2Snippet[]> {
     await ensureDbReady();
@@ -141,6 +147,7 @@ export async function getRound2Snippets(): Promise<Round2Snippet[]> {
     }
 }
 
+// In the participant view, we only need one snippet at a time.
 export async function getRound2Snippet(): Promise<Round2Snippet | null> {
     const snippets = await getRound2Snippets();
     return snippets[0] || null;
@@ -268,4 +275,44 @@ export async function submitRound1Answers(participantId: string, answers: { ques
 
     await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
     return { score };
+}
+
+// ============= ROUND 2: TEST RUNNER =============
+
+export type TestCaseResult = {
+    input: string;
+    expectedOutput: string;
+    actualOutput: string;
+    passed: boolean;
+};
+
+// Normalizes newline characters and trims trailing whitespace.
+const normalizeOutput = (output: string) => output.replace(/\r\n/g, '\n').trim();
+
+export async function runRound2Tests(userCode: string, snippetId: string): Promise<{ publicResults: TestCaseResult[], privateResults: Pick<TestCaseResult, 'passed'>[] }> {
+    const snippets = await getRound2Snippets();
+    const snippet = snippets.find(s => s.id === snippetId);
+
+    if (!snippet) {
+        throw new Error("Debugging snippet not found.");
+    }
+
+    const runTest = async (testCase: TestCase): Promise<TestCaseResult> => {
+        const { output: actualOutputRaw } = await compileAndRunCode(userCode, testCase.input);
+        const actualOutput = normalizeOutput(actualOutputRaw);
+        const expectedOutput = normalizeOutput(testCase.expectedOutput);
+        
+        return {
+            ...testCase,
+            actualOutput,
+            passed: actualOutput === expectedOutput
+        };
+    };
+
+    const publicResults = await Promise.all(snippet.publicTestCases.map(runTest));
+    const privateTestResults = await Promise.all(snippet.privateTestCases.map(runTest));
+    
+    const privateResults = privateTestResults.map(res => ({ passed: res.passed }));
+
+    return { publicResults, privateResults };
 }

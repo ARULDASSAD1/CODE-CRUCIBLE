@@ -1,9 +1,2 @@
 
-[
-  {
-    "title": "ARRAY AVERAGE",
-    "code": "#include <stdio.h>\nint main() {\n    int n,i;\n    int arr[100];\n    int sum; // BUG: uninitialized\n    printf(\"Enter count: \");\n    scanf(\"%d\", &n);\n    for(i=0; i<=n; i++){ // BUG: off-by-one, writes one extra element\n        printf(\"arr[%d] = \", i);\n        scanf(\"%d\", &arr[i]);\n        sum += arr[i];\n    }\n    float avg = sum / n; // BUG: integer division\n    printf(\"\\nAverage = %f\\n\", avg);\n    return 0;\n}\n",
-    "correctedCode": "#include <stdio.h>\nint main(void) {\n    int n, i;\n    int arr[100];\n    long long sum = 0;\n    printf(\"Enter count: \");\n    if (scanf(\"%d\", &n) != 1 || n < 1 || n > 100) {\n        printf(\"Invalid count\\n\");\n        return 1;\n    }\n    for (i = 0; i < n; i++) {\n        printf(\"arr[%d] = \", i);\n        if (scanf(\"%d\", &arr[i]) != 1) return 1;\n        sum += arr[i];\n    }\n    double avg = (double)sum / n;\n    printf(\"Average = %.2f\\n\", avg);\n    return 0;\n}\n",
-    "id": "2025-08-17T08:12:27.017Z0.35489265720902363"
-  }
-]
+[]

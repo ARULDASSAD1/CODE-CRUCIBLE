@@ -2,17 +2,18 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useForm, SubmitHandler } from 'react-hook-form';
+import { useForm, useFieldArray, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { getRound2Snippets, saveRound2Snippet, deleteRound2Snippet, Round2Snippet } from '@/app/actions';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, PlusCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,12 +27,19 @@ import {
 } from "@/components/ui/alert-dialog"
 import Link from 'next/link';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
+
+const testCaseSchema = z.object({
+  input: z.string().min(1, "Input cannot be empty"),
+  expectedOutput: z.string().min(1, "Expected output cannot be empty"),
+});
 
 const snippetSchema = z.object({
   title: z.string().min(1, 'Title cannot be empty.'),
   code: z.string().min(1, 'Buggy code snippet cannot be empty.'),
-  correctedCode: z.string().min(1, 'Corrected code snippet cannot be empty.'),
+  publicTestCases: z.array(testCaseSchema).min(1, "You must provide at least one public test case."),
+  privateTestCases: z.array(testCaseSchema).min(1, "You must provide at least one private test case."),
 });
 
 type SnippetFormValues = z.infer<typeof snippetSchema>;
@@ -46,6 +54,7 @@ export default function ManageRound2() {
   const {
     register,
     handleSubmit,
+    control,
     reset,
     formState: { errors }
   } = useForm<SnippetFormValues>({
@@ -53,8 +62,19 @@ export default function ManageRound2() {
     defaultValues: {
       title: '',
       code: '',
-      correctedCode: ''
+      publicTestCases: [{ input: '', expectedOutput: '' }],
+      privateTestCases: [{ input: '', expectedOutput: '' }]
     },
+  });
+
+  const { fields: publicTestCases, append: appendPublicTestCase, remove: removePublicTestCase } = useFieldArray({
+    control,
+    name: "publicTestCases"
+  });
+
+  const { fields: privateTestCases, append: appendPrivateTestCase, remove: removePrivateTestCase } = useFieldArray({
+    control,
+    name: "privateTestCases"
   });
 
   const fetchSnippets = async () => {
@@ -106,17 +126,17 @@ export default function ManageRound2() {
                 <Link href="/admin">Back to Dashboard</Link>
             </Button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
           <Card>
             <CardHeader>
               <CardTitle>Add Debugging Snippet</CardTitle>
-              <CardDescription>Provide a buggy C code snippet and its corrected version for Round 2.</CardDescription>
+              <CardDescription>Provide a buggy C code snippet and its test cases for Round 2.</CardDescription>
             </CardHeader>
             <form onSubmit={handleSubmit(handleFormSubmit)}>
               <CardContent className="space-y-6">
-                <div className="space-y-2">
+                 <div className="space-y-2">
                   <Label htmlFor="title">Snippet Title</Label>
-                  <Textarea id="title" {...register('title')} placeholder="e.g., Array Average Bug" />
+                  <Input id="title" {...register('title')} placeholder="e.g., Array Average Bug" />
                   {errors.title && <p className="text-destructive text-sm">{errors.title.message}</p>}
                 </div>
                  <div className="space-y-2">
@@ -124,13 +144,54 @@ export default function ManageRound2() {
                   <Textarea id="code" {...register('code')} placeholder="#include <stdio.h> ..." rows={8} className="font-code"/>
                   {errors.code && <p className="text-destructive text-sm">{errors.code.message}</p>}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="correctedCode">Corrected C Code</Label>
-                  <Textarea id="correctedCode" {...register('correctedCode')} placeholder="#include <stdio.h> ..." rows={8} className="font-code"/>
-                  {errors.correctedCode && <p className="text-destructive text-sm">{errors.correctedCode.message}</p>}
+
+                <Separator />
+
+                {/* PUBLIC TEST CASES */}
+                <div className="space-y-4">
+                    <Label className="text-lg">Public Test Cases</Label>
+                    {errors.publicTestCases?.root && <p className="text-destructive text-sm">{errors.publicTestCases.root.message}</p>}
+                    {publicTestCases.map((field, index) => (
+                        <div key={field.id} className="space-y-2 border p-4 rounded-md relative">
+                            <Label>Test Case {index + 1}</Label>
+                            <Textarea {...register(`publicTestCases.${index}.input`)} placeholder="Input (stdin)" rows={2} />
+                             {errors.publicTestCases?.[index]?.input && <p className="text-destructive text-sm">{errors.publicTestCases[index]?.input?.message}</p>}
+                            <Textarea {...register(`publicTestCases.${index}.expectedOutput`)} placeholder="Expected Output (stdout)" rows={2} />
+                             {errors.publicTestCases?.[index]?.expectedOutput && <p className="text-destructive text-sm">{errors.publicTestCases[index]?.expectedOutput?.message}</p>}
+                            <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => removePublicTestCase(index)}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                     <Button type="button" variant="outline" size="sm" onClick={() => appendPublicTestCase({ input: '', expectedOutput: '' })}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Public Test Case
+                    </Button>
+                </div>
+
+                <Separator />
+
+                {/* PRIVATE TEST CASES */}
+                <div className="space-y-4">
+                    <Label className="text-lg">Private Test Cases</Label>
+                     {errors.privateTestCases?.root && <p className="text-destructive text-sm">{errors.privateTestCases.root.message}</p>}
+                    {privateTestCases.map((field, index) => (
+                        <div key={field.id} className="space-y-2 border p-4 rounded-md relative">
+                            <Label>Test Case {index + 1}</Label>
+                            <Textarea {...register(`privateTestCases.${index}.input`)} placeholder="Input (stdin)" rows={2} />
+                             {errors.privateTestCases?.[index]?.input && <p className="text-destructive text-sm">{errors.privateTestCases[index]?.input?.message}</p>}
+                            <Textarea {...register(`privateTestCases.${index}.expectedOutput`)} placeholder="Expected Output (stdout)" rows={2} />
+                             {errors.privateTestCases?.[index]?.expectedOutput && <p className="text-destructive text-sm">{errors.privateTestCases[index]?.expectedOutput?.message}</p>}
+                             <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => removePrivateTestCase(index)}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                    <Button type="button" variant="outline" size="sm" onClick={() => appendPrivateTestCase({ input: '', expectedOutput: '' })}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Private Test Case
+                    </Button>
                 </div>
               </CardContent>
-              <CardFooter className='justify-between'>
+              <CardFooter>
                 <Button type="submit" disabled={isSaving}>
                   {isSaving && <Loader2 className="animate-spin" />}
                   {isSaving ? 'Saving...' : 'Save Snippet'}
@@ -152,7 +213,7 @@ export default function ManageRound2() {
               ) : snippets.length === 0 ? (
                 <p>No snippets have been added yet.</p>
               ) : (
-                <ScrollArea className="h-[500px]">
+                <ScrollArea className="h-[700px]">
                   <ul className="space-y-4">
                     {snippets.map((s) => (
                       <li key={s.id} className="p-4 border rounded-lg flex items-start gap-4">
@@ -161,11 +222,6 @@ export default function ManageRound2() {
                            <pre className="whitespace-pre-wrap font-code text-sm bg-muted p-2 rounded-md mt-2">
                                 <code className='text-red-400'>
                                     {s.code}
-                                </code>
-                           </pre>
-                            <pre className="whitespace-pre-wrap font-code text-sm bg-muted p-2 rounded-md mt-2">
-                                <code className='text-green-400'>
-                                    {s.correctedCode}
                                 </code>
                            </pre>
                         </div>
@@ -185,7 +241,7 @@ export default function ManageRound2() {
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction onClick={() => handleDelete(s.id)}>Delete</AlertDialogAction>
-                              </AlertDialogFooter>
+                              </Footer>
                             </AlertDialogContent>
                           </AlertDialog>
                       </li>
