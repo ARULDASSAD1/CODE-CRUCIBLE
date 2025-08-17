@@ -111,10 +111,12 @@ export default function AdminDashboard() {
                 <CardTitle className="flex items-center gap-2">
                   <BarChart2 /> Scoreboard
                 </CardTitle>
-                <CardDescription>This feature is not yet available.</CardDescription>
+                <CardDescription>View live scores and rankings.</CardDescription>
               </CardHeader>
               <CardContent>
-                  <Button variant="secondary" className="w-full" disabled>View Scoreboard</Button>
+                  <Button asChild className="w-full">
+                    <Link href="/admin/scoreboard">View Scoreboard</Link>
+                  </Button>
               </CardContent>
             </Card>
           </div>
