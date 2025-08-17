@@ -35,8 +35,7 @@ export default function ParticipantRound2() {
                 if (fetchedSnippet) {
                     setSnippet(fetchedSnippet);
                     setCode(fetchedSnippet.code);
-                    // Pre-fill the console with a hint about input
-                    setConsoleContent('// Enter input for your program here, then click Compile & Run.\n// Example for the default snippet:\n5\n10\n20\n30\n40\n50\n'); 
+                    setConsoleContent('// Enter input for your program here, then click Compile & Run.\n// The program will show prompts (printf) and wait for your input (scanf).\n// Example for the default snippet:\n// 5\n// 10\n// 20\n// 30\n// 40\n// 50\n'); 
                 } else {
                     setCode('// No debugging snippets have been added by the admin yet.');
                 }
@@ -58,19 +57,16 @@ export default function ParticipantRound2() {
         }
 
         setIsCompiling(true);
-        const compilingMessage = "\n> Compiling and running...\n";
+        const compilingMessage = "\n\n> Compiling and running...\n";
         setConsoleContent(prev => prev + compilingMessage);
 
         try {
-            // Pass the user's code and the current console content (as input) to the server action
             const result = await compileAndRunCode(code, consoleContent);
-            
-            const output = result.stderr || result.stdout;
+            const output = result.output; // The output from the compiler/program
 
-            // Append the actual output from the compiler/program
-            setConsoleContent(prev => prev + compilingMessage + output);
+            setConsoleContent(prev => prev + output);
 
-            if (result.success || (!result.error && result.stdout)) {
+            if (result.success) {
                 toast({
                     title: "Execution Finished",
                     description: "Check the console for program output.",
@@ -85,7 +81,7 @@ export default function ParticipantRound2() {
 
         } catch (error) {
             console.error("Code execution failed", error);
-            const errorMessage = "\n> An unexpected error occurred. Please try again.\n";
+            const errorMessage = "An unexpected error occurred. Please try again.";
             setConsoleContent(prev => prev + errorMessage);
             toast({ title: "Error", description: "Could not run your code.", variant: "destructive"});
         } finally {

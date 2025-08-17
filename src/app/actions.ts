@@ -29,15 +29,19 @@ async function ensureDbReady() {
 export async function compileAndRunCode(code: string, input: string): Promise<{ output: string, success: boolean }> {
     try {
       const result = await compileAndRunCService(code, input);
-      const output = result.stderr || result.stdout;
+      // Ensure there's always a string output.
+      const output = result.stderr || result.stdout || '';
+      // Success is true only if there's no error object and no stderr output.
       const success = !result.error && !result.stderr;
       return {
         output: output,
         success: success,
       };
     } catch (error: any) {
+      // Ensure there's always a string output even in case of a crash.
+      const output = error.stderr || error.message || 'An unexpected error occurred during compilation.';
       return {
-        output: error.stderr || error.message || 'An unexpected error occurred during compilation.',
+        output: output,
         success: false,
       };
     }
