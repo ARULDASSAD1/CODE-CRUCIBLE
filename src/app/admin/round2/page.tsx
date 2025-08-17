@@ -241,7 +241,7 @@ export default function ManageRound2() {
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction onClick={() => handleDelete(s.id)}>Delete</AlertDialogAction>
-                              </Footer>
+                              </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
                       </li>
@@ -255,4 +255,5 @@ export default function ManageRound2() {
       </main>
     </div>
   );
-}
+
+    
