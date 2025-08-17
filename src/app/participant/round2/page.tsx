@@ -7,18 +7,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getRound2Snippet, Round2Snippet } from '@/app/actions';
-import { Loader2, CheckCircle } from 'lucide-react';
+import { Loader2, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
-import { validateCodeFix } from '@/ai/flows/suggest-code-improvements';
+import { runCCode } from '@/ai/flows/run-c-code';
 
 export default function ParticipantRound2() {
     const [snippet, setSnippet] = useState<Round2Snippet | null>(null);
     const [code, setCode] = useState('');
+    const [output, setOutput] = useState('// Compiler output will appear here...');
     const [isLoading, setIsLoading] = useState(true);
-    const [isChecking, setIsChecking] = useState(false);
+    const [isCompiling, setIsCompiling] = useState(false);
     
     const { toast } = useToast();
     const router = useRouter();
@@ -49,39 +50,38 @@ export default function ParticipantRound2() {
 
     }, [router, toast]);
     
-    const handleCheckCode = async () => {
+    const handleRunCode = async () => {
         if (!snippet) {
-            toast({ title: "No Snippet Loaded", description: "Cannot check your code right now.", variant: "destructive" });
+            toast({ title: "No Snippet Loaded", description: "Cannot run your code right now.", variant: "destructive" });
             return;
         }
 
-        setIsChecking(true);
+        setIsCompiling(true);
+        setOutput('Compiling...');
         try {
-            // This is now an offline check, not a real AI call.
-            const result = await validateCodeFix({
-                buggyCode: snippet.correctedCode, // We are sending corrected code here for comparison
-                fixedCode: code,
-            });
+            const result = await runCCode({ code });
 
-            if (result.isCorrect) {
+            setOutput(result.output);
+
+            if (result.success) {
                 toast({
-                    title: "Correct!",
-                    description: result.reasoning,
-                    className: "bg-green-600 text-white",
+                    title: "Success",
+                    description: "Code compiled and ran successfully.",
                 });
             } else {
                  toast({
-                    title: "Incorrect",
-                    description: result.reasoning,
+                    title: "Error",
+                    description: "Your code has compilation or runtime errors.",
                     variant: "destructive",
                 });
             }
 
         } catch (error) {
-            console.error("Code validation failed", error);
-            toast({ title: "Error", description: "Could not validate your code. Please try again.", variant: "destructive"});
+            console.error("Code execution failed", error);
+            toast({ title: "Error", description: "Could not run your code. Please try again.", variant: "destructive"});
+            setOutput('An unexpected error occurred.');
         } finally {
-            setIsChecking(false);
+            setIsCompiling(false);
         }
     };
 
@@ -93,7 +93,7 @@ export default function ParticipantRound2() {
                     <CardHeader>
                         <CardTitle>Round 2: Debugging Challenge - {snippet?.title || 'Loading...'}</CardTitle>
                         <CardDescription>
-                            Find and fix the bug(s) in the C code below. When you think you have the correct solution, submit it to check.
+                            Find and fix the bug(s) in the C code below. Then, compile and run it to check your solution.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 gap-6">
@@ -102,22 +102,32 @@ export default function ParticipantRound2() {
                                 <Loader2 className="animate-spin" size={32} />
                             </div>
                         ) : (
-                            <div className="space-y-4">
-                                <Label htmlFor="code-editor">Your C Code</Label>
-                                <Textarea 
-                                    id="code-editor"
-                                    value={code}
-                                    onChange={(e) => setCode(e.target.value)}
-                                    className="font-code h-[350px] bg-muted/50"
-                                    placeholder="Write your C code here..."
-                                />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <Label htmlFor="code-editor">Your C Code</Label>
+                                    <Textarea 
+                                        id="code-editor"
+                                        value={code}
+                                        onChange={(e) => setCode(e.target.value)}
+                                        className="font-code h-[350px] bg-muted/50"
+                                        placeholder="Write your C code here..."
+                                    />
+                                </div>
+                                <div className="space-y-4">
+                                    <Label htmlFor="output-area">Output</Label>
+                                     <pre id="output-area" className="whitespace-pre-wrap font-code text-sm bg-muted p-4 rounded-md h-[350px] overflow-auto">
+                                        <code>
+                                            {output}
+                                        </code>
+                                    </pre>
+                                </div>
                             </div>
                         )}
                     </CardContent>
                     <CardFooter className='border-t pt-6 flex justify-between'>
-                        <Button onClick={handleCheckCode} disabled={isChecking || isLoading || !snippet}>
-                            {isChecking ? <Loader2 className='animate-spin' /> : <CheckCircle />}
-                            {isChecking ? 'Checking...' : 'Submit & Check'}
+                        <Button onClick={handleRunCode} disabled={isCompiling || isLoading || !snippet}>
+                            {isCompiling ? <Loader2 className='animate-spin' /> : <Play />}
+                            {isCompiling ? 'Compiling...' : 'Compile & Run'}
                         </Button>
                         <Button variant="outline" asChild>
                            <Link href="/participant">Back to Portal</Link>
