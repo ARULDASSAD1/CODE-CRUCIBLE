@@ -35,7 +35,6 @@ export default function ParticipantRound2() {
                 if (fetchedSnippet) {
                     setSnippet(fetchedSnippet);
                     setCode(fetchedSnippet.code);
-                    setConsoleContent('// Enter input for your program here, then click Compile & Run.\n// The program will show prompts (printf) and wait for your input (scanf).\n// Example for the default snippet:\n// 5\n// 10\n// 20\n// 30\n// 40\n// 50\n'); 
                 } else {
                     setCode('// No debugging snippets have been added by the admin yet.');
                 }
@@ -61,11 +60,9 @@ export default function ParticipantRound2() {
         setConsoleContent(prev => prev + compilingMessage);
 
         try {
-            // We send the whole console content as input.
+            // The user's input is the *entire* content of the console.
             const result = await compileAndRunCode(code, consoleContent);
-            
-            // The full output (stdout + stderr) from the compilation/run
-            const output = result.output; 
+            const output = result.output || ""; 
 
             // Append the new output to the console
             setConsoleContent(prev => prev + output);
@@ -86,12 +83,25 @@ export default function ParticipantRound2() {
         } catch (error) {
             console.error("Code execution failed", error);
             const errorMessage = "An unexpected error occurred. Please try again.";
-            setConsoleContent(prev => prev + errorMessage);
+            setConsoleContent(prev => prev + "\n" + errorMessage);
             toast({ title: "Error", description: "Could not run your code.", variant: "destructive"});
         } finally {
             setIsCompiling(false);
         }
     };
+
+    const consolePlaceholder = `This is a simple console. It is NOT interactive turn-by-turn.
+
+You must provide ALL inputs the program needs at once, separated by newlines, then click "Compile & Run".
+
+For example, if the program asks for a count and then that many numbers, your input here should look like this:
+5
+10
+20
+30
+40
+50
+`;
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -101,7 +111,7 @@ export default function ParticipantRound2() {
                     <CardHeader>
                         <CardTitle>Round 2: Debugging Challenge - {snippet?.title || 'Loading...'}</CardTitle>
                         <CardDescription>
-                            Find and fix the bug(s) in the C code below. Provide input in the console if needed, then compile and run to check your solution.
+                            Find and fix the bug(s) in the C code. Provide all required input in the console, then compile and run to check your solution.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 gap-6">
@@ -128,7 +138,7 @@ export default function ParticipantRound2() {
                                         value={consoleContent}
                                         onChange={(e) => setConsoleContent(e.target.value)}
                                         className="font-code h-[450px] bg-muted/50 text-foreground"
-                                        placeholder="Enter input for your program here... output will also appear here."
+                                        placeholder={consolePlaceholder}
                                     />
                                 </div>
                             </div>

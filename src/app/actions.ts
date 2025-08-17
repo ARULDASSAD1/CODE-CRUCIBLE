@@ -30,7 +30,7 @@ export async function compileAndRunCode(code: string, input: string): Promise<{ 
     try {
       const result = await compileAndRunCService(code, input);
       // Ensure there's always a string output.
-      const output = result.stderr || result.stdout || '';
+      const output = result.stdout || result.stderr || '';
       // Success is true only if there's no error object and no stderr output.
       const success = !result.error && !result.stderr;
       return {
