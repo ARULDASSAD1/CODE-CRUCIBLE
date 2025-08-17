@@ -55,24 +55,31 @@ export default function ParticipantRound2() {
         }
         fetchSnippet();
 
+        // Manually create and load the script
         const script = document.createElement('script');
         script.src = '/tcc-bundle.js';
         script.async = true;
         
         script.onload = () => {
             if (window.TCC && typeof window.TCC.init === 'function') {
-                window.TCC.init({
-                    wasm_path: '/tcc.wasm'
-                }).then((loadedTcc: any) => {
-                    tcc.current = loadedTcc;
-                    setIsCompilerReady(true);
-                    setOutput('Compiler loaded. Ready to run code.');
-                    toast({ title: "Compiler Ready", description: "The C compiler has loaded successfully." });
-                }).catch((err: any) => {
-                    console.error("TCC initialization failed:", err);
-                    setOutput('Error: Could not initialize the C compiler.');
-                    toast({ title: "Compiler Error", description: "Failed to load the C compiler.", variant: "destructive" });
-                });
+                // Fetch the wasm in base64
+                fetch('/tcc.wasm')
+                    .then(response => response.text())
+                    .then(b64_string => {
+                        window.TCC.init(b64_string).then((loadedTcc: any) => {
+                            tcc.current = loadedTcc;
+                            setIsCompilerReady(true);
+                            setOutput('Compiler loaded. Ready to run code.');
+                            toast({ title: "Compiler Ready", description: "The C compiler has loaded successfully." });
+                        }).catch((err: any) => {
+                            console.error("TCC initialization failed:", err);
+                            setOutput('Error: Could not initialize the C compiler.');
+                            toast({ title: "Compiler Error", description: "Failed to load the C compiler.", variant: "destructive" });
+                        });
+                    }).catch((err: any) => {
+                         console.error("Fetching tcc.wasm failed:", err);
+                         setOutput('Error: Could not load tcc.wasm.');
+                    });
             } else {
                  console.error("TCC script loaded, but window.TCC.init is not a function.");
                  setOutput('Error: TCC script loaded incorrectly.');
@@ -109,10 +116,10 @@ export default function ParticipantRound2() {
             tcc.current.set_stdout(function(c: number) { captured_stdout += String.fromCharCode(c) });
             tcc.current.set_stderr(function(c: number) { captured_stderr += String.fromCharCode(c) });
 
-            const exit_code = tcc.current.compile(code);
+            tcc.current.compile(code);
             
-            if (exit_code !== 0) {
-                setOutput(`Compilation failed:\n${captured_stderr || "Check code for errors."}`);
+            if (captured_stderr) {
+                setOutput(`Compilation failed:\n${captured_stderr}`);
             } else {
                  tcc.current.run("main");
                  const finalOutput = captured_stdout || captured_stderr || "Program executed without output.";
