@@ -65,7 +65,6 @@ export default function ParticipantRound2() {
                     wasm_path: '/tcc.wasm'
                 }).then((loadedTcc: any) => {
                     tcc.current = loadedTcc;
-                    tcc.current.init();
                     setIsCompilerReady(true);
                     setOutput('Compiler loaded. Ready to run code.');
                     toast({ title: "Compiler Ready", description: "The C compiler has loaded successfully." });
