@@ -45,6 +45,12 @@ export async function compileAndRunC(code: string, input: string = ''): Promise<
             let stdout = '';
             let stderr = '';
 
+            // Set a timeout to prevent hanging forever (e.g., from an infinite loop)
+            const timeout = setTimeout(() => {
+                child.kill(); 
+                resolve({ stdout, stderr: stderr + '\nError: Process timed out after 5 seconds.'});
+            }, 5000); 
+
             // Write the provided manual input to the program's stdin
             if (input) {
                 child.stdin.write(input);
@@ -60,18 +66,14 @@ export async function compileAndRunC(code: string, input: string = ''): Promise<
             });
 
             child.on('close', (code) => {
+                clearTimeout(timeout);
                 resolve({ stdout, stderr });
             });
             
             child.on('error', (err) => {
+                clearTimeout(timeout);
                 resolve({ stdout: '', stderr: err.message, error: err });
             });
-
-            // Set a timeout to prevent hanging forever
-            setTimeout(() => {
-                child.kill(); 
-                resolve({ stdout, stderr: stderr + '\nError: Process timed out after 5 seconds.'});
-            }, 5000); 
         });
 
     } finally {

@@ -35,8 +35,8 @@ export default function ParticipantRound2() {
                 if (fetchedSnippet) {
                     setSnippet(fetchedSnippet);
                     setCode(fetchedSnippet.code);
-                    // Pre-fill the console with sample input for the user
-                    setConsoleContent('5\n10\n20\n30\n40\n50\n'); 
+                    // Pre-fill the console with a hint about input
+                    setConsoleContent('// Enter input for your program here, then click Compile & Run.\n// Example for the default snippet:\n5\n10\n20\n30\n40\n50\n'); 
                 } else {
                     setCode('// No debugging snippets have been added by the admin yet.');
                 }
@@ -58,24 +58,27 @@ export default function ParticipantRound2() {
         }
 
         setIsCompiling(true);
-        // Append a 'compiling' message to the console
-        setConsoleContent(prev => prev + "\n> Compiling and running...\n");
+        const compilingMessage = "\n> Compiling and running...\n";
+        setConsoleContent(prev => prev + compilingMessage);
 
         try {
+            // Pass the user's code and the current console content (as input) to the server action
             const result = await compileAndRunCode(code, consoleContent);
             
-            // Append the actual output from the compiler/program
-            setConsoleContent(prev => prev + result.output);
+            const output = result.stderr || result.stdout;
 
-            if (result.success) {
+            // Append the actual output from the compiler/program
+            setConsoleContent(prev => prev + compilingMessage + output);
+
+            if (result.success || (!result.error && result.stdout)) {
                 toast({
-                    title: "Success",
-                    description: "Code compiled and ran successfully.",
+                    title: "Execution Finished",
+                    description: "Check the console for program output.",
                 });
             } else {
                  toast({
-                    title: "Finished",
-                    description: "Execution finished. Check the console for output or errors.",
+                    title: "Execution Finished",
+                    description: "Your code may have errors. Check the console.",
                     variant: "destructive",
                 });
             }
