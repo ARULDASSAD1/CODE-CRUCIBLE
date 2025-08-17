@@ -31,7 +31,7 @@ import { Separator } from '@/components/ui/separator';
 
 
 const testCaseSchema = z.object({
-  input: z.string().min(1, "Input cannot be empty"),
+  input: z.string(), // Allow empty input for programs that don't require it
   expectedOutput: z.string().min(1, "Expected output cannot be empty"),
 });
 
@@ -154,9 +154,9 @@ export default function ManageRound3() {
                     {publicTestCases.map((field, index) => (
                         <div key={field.id} className="space-y-2 border p-4 rounded-md relative">
                             <Label>Test Case {index + 1}</Label>
-                            <Textarea {...register(`publicTestCases.${index}.input`)} placeholder="Input (stdin)" rows={2} />
+                            <Textarea {...register(`publicTestCases.${index}.input`)} placeholder="Input (stdin). Use newlines for multiple inputs." rows={2} />
                              {errors.publicTestCases?.[index]?.input && <p className="text-destructive text-sm">{errors.publicTestCases[index]?.input?.message}</p>}
-                            <Textarea {...register(`publicTestCases.${index}.expectedOutput`)} placeholder="Expected Output (stdout)" rows={2} />
+                            <Textarea {...register(`publicTestCases.${index}.expectedOutput`)} placeholder="Expected Output (stdout). Use newlines for multiple lines." rows={2} />
                              {errors.publicTestCases?.[index]?.expectedOutput && <p className="text-destructive text-sm">{errors.publicTestCases[index]?.expectedOutput?.message}</p>}
                             <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => removePublicTestCase(index)}>
                                 <Trash2 className="h-4 w-4" />
@@ -177,9 +177,9 @@ export default function ManageRound3() {
                     {privateTestCases.map((field, index) => (
                         <div key={field.id} className="space-y-2 border p-4 rounded-md relative">
                             <Label>Test Case {index + 1}</Label>
-                            <Textarea {...register(`privateTestCases.${index}.input`)} placeholder="Input (stdin)" rows={2} />
+                            <Textarea {...register(`privateTestCases.${index}.input`)} placeholder="Input (stdin). Use newlines for multiple inputs." rows={2} />
                              {errors.privateTestCases?.[index]?.input && <p className="text-destructive text-sm">{errors.privateTestCases[index]?.input?.message}</p>}
-                            <Textarea {...register(`privateTestCases.${index}.expectedOutput`)} placeholder="Expected Output (stdout)" rows={2} />
+                            <Textarea {...register(`privateTestCases.${index}.expectedOutput`)} placeholder="Expected Output (stdout). Use newlines for multiple lines." rows={2} />
                              {errors.privateTestCases?.[index]?.expectedOutput && <p className="text-destructive text-sm">{errors.privateTestCases[index]?.expectedOutput?.message}</p>}
                              <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => removePrivateTestCase(index)}>
                                 <Trash2 className="h-4 w-4" />
