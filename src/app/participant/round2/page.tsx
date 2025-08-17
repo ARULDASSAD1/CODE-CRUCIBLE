@@ -1,32 +1,29 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getRound2Snippet, Round2Snippet } from '@/app/actions';
-import { Loader2, Play } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 
-declare global {
-  interface Window {
-    TCC: any;
-  }
+// Helper function to normalize code for comparison
+const normalizeCode = (str: string) => {
+    // Remove all whitespace and newlines, and make it lowercase
+    return str.replace(/\s/g, '').toLowerCase();
 }
 
 export default function ParticipantRound2() {
     const [snippet, setSnippet] = useState<Round2Snippet | null>(null);
     const [code, setCode] = useState('');
-    const [output, setOutput] = useState('Compiler not yet loaded. Please wait...');
     const [isLoading, setIsLoading] = useState(true);
-    const [isCompiling, setIsCompiling] = useState(false);
-    const [isCompilerReady, setIsCompilerReady] = useState(false);
-    const tcc = useRef<any>(null);
+    const [isChecking, setIsChecking] = useState(false);
     
     const { toast } = useToast();
     const router = useRouter();
@@ -55,83 +52,34 @@ export default function ParticipantRound2() {
         }
         fetchSnippet();
 
-        // Manually create and load the script
-        const script = document.createElement('script');
-        script.src = '/tcc-bundle.js';
-        script.async = true;
-        
-        script.onload = () => {
-            if (window.TCC && typeof window.TCC.init === 'function') {
-                // Fetch the wasm in base64
-                fetch('/tcc.wasm')
-                    .then(response => response.text())
-                    .then(b64_string => {
-                        window.TCC.init(b64_string).then((loadedTcc: any) => {
-                            tcc.current = loadedTcc;
-                            setIsCompilerReady(true);
-                            setOutput('Compiler loaded. Ready to run code.');
-                            toast({ title: "Compiler Ready", description: "The C compiler has loaded successfully." });
-                        }).catch((err: any) => {
-                            console.error("TCC initialization failed:", err);
-                            setOutput('Error: Could not initialize the C compiler.');
-                            toast({ title: "Compiler Error", description: "Failed to load the C compiler.", variant: "destructive" });
-                        });
-                    }).catch((err: any) => {
-                         console.error("Fetching tcc.wasm failed:", err);
-                         setOutput('Error: Could not load tcc.wasm.');
-                    });
-            } else {
-                 console.error("TCC script loaded, but window.TCC.init is not a function.");
-                 setOutput('Error: TCC script loaded incorrectly.');
-            }
-        };
-
-        script.onerror = () => {
-            setOutput('Fatal Error: Could not load tcc-bundle.js. Check network connection or file path.');
-            toast({ title: "Fatal Error", description: "Could not load tcc-bundle.js.", variant: "destructive" });
-        };
-        
-        document.body.appendChild(script);
-
-        return () => {
-            if (script.parentNode) {
-                script.parentNode.removeChild(script);
-            }
-        }
-
     }, [router, toast]);
     
-    const handleRunCode = () => {
-        if (!tcc.current) {
-            toast({ title: "Compiler Not Ready", description: "Please wait for the compiler to finish loading.", variant: "destructive" });
+    const handleCheckCode = () => {
+        if (!snippet) {
+            toast({ title: "No Snippet Loaded", description: "Cannot check your code right now.", variant: "destructive" });
             return;
         }
 
-        setIsCompiling(true);
-        setOutput('Compiling and running...');
-        let captured_stdout = "";
-        let captured_stderr = "";
+        setIsChecking(true);
 
-        try {
-            tcc.current.set_stdout(function(c: number) { captured_stdout += String.fromCharCode(c) });
-            tcc.current.set_stderr(function(c: number) { captured_stderr += String.fromCharCode(c) });
+        const isCorrect = normalizeCode(code) === normalizeCode(snippet.correctedCode);
 
-            tcc.current.compile(code);
-            
-            if (captured_stderr) {
-                setOutput(`Compilation failed:\n${captured_stderr}`);
+        setTimeout(() => {
+            if (isCorrect) {
+                toast({
+                    title: "Correct!",
+                    description: "Your solution is correct. Great job!",
+                    className: "bg-green-600 text-white"
+                });
             } else {
-                 tcc.current.run("main");
-                 const finalOutput = captured_stdout || captured_stderr || "Program executed without output.";
-                 setOutput(`Program exited.\nOutput:\n-------\n${finalOutput}`);
+                toast({
+                    title: "Incorrect",
+                    description: "Your solution doesn't match the expected output. Please try again.",
+                    variant: "destructive"
+                });
             }
-        } catch (e: any) {
-            console.error("Compilation/Execution error:", e);
-            setOutput(`An unexpected error occurred: ${e.message}`);
-            toast({ title: "Error", description: "An unexpected error occurred during execution.", variant: "destructive" });
-        } finally {
-            setIsCompiling(false);
-        }
+            setIsChecking(false);
+        }, 500); // Simulate a short delay
     };
 
     return (
@@ -142,7 +90,7 @@ export default function ParticipantRound2() {
                     <CardHeader>
                         <CardTitle>Round 2: Debugging Challenge - {snippet?.title || 'Loading...'}</CardTitle>
                         <CardDescription>
-                            Find and fix the bug(s) in the C code below, then compile and run it to verify your solution.
+                            Find and fix the bug(s) in the C code below. When you think you have the correct solution, submit it to check.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 gap-6">
@@ -162,19 +110,11 @@ export default function ParticipantRound2() {
                                 />
                             </div>
                         )}
-                        <div className="space-y-4">
-                            <Label htmlFor="output">Output</Label>
-                            <Card id="output" className='bg-black h-[200px] text-white font-code p-4 overflow-auto'>
-                                <pre className="whitespace-pre-wrap">
-                                    {output}
-                                </pre>
-                            </Card>
-                        </div>
                     </CardContent>
                     <CardFooter className='border-t pt-6 flex justify-between'>
-                        <Button onClick={handleRunCode} disabled={isCompiling || !isCompilerReady || isLoading}>
-                            {isCompiling ? <Loader2 className='animate-spin' /> : <Play />}
-                            {isCompiling ? 'Running...' : 'Compile & Run'}
+                        <Button onClick={handleCheckCode} disabled={isChecking || isLoading}>
+                            {isChecking ? <Loader2 className='animate-spin' /> : <CheckCircle />}
+                            {isChecking ? 'Checking...' : 'Submit & Check'}
                         </Button>
                         <Button variant="outline" asChild>
                            <Link href="/participant">Back to Portal</Link>

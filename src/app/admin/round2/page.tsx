@@ -30,7 +30,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 const snippetSchema = z.object({
   title: z.string().min(1, 'Title cannot be empty.'),
-  code: z.string().min(1, 'Code snippet cannot be empty.'),
+  code: z.string().min(1, 'Buggy code snippet cannot be empty.'),
+  correctedCode: z.string().min(1, 'Corrected code snippet cannot be empty.'),
 });
 
 type SnippetFormValues = z.infer<typeof snippetSchema>;
@@ -52,6 +53,7 @@ export default function ManageRound2() {
     defaultValues: {
       title: '',
       code: '',
+      correctedCode: ''
     },
   });
 
@@ -108,19 +110,24 @@ export default function ManageRound2() {
           <Card>
             <CardHeader>
               <CardTitle>Add Debugging Snippet</CardTitle>
-              <CardDescription>Provide a C code snippet for participants to debug in Round 2.</CardDescription>
+              <CardDescription>Provide a buggy C code snippet and its corrected version for Round 2.</CardDescription>
             </CardHeader>
             <form onSubmit={handleSubmit(handleFormSubmit)}>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="title">Snippet Title</Label>
-                  <Textarea id="title" {...register('title')} placeholder="e.g., Linked List Bug" />
+                  <Textarea id="title" {...register('title')} placeholder="e.g., Array Average Bug" />
                   {errors.title && <p className="text-destructive text-sm">{errors.title.message}</p>}
                 </div>
                  <div className="space-y-2">
-                  <Label htmlFor="code">C Code</Label>
-                  <Textarea id="code" {...register('code')} placeholder="#include <stdio.h> ..." rows={10} className="font-code"/>
+                  <Label htmlFor="code">Buggy C Code</Label>
+                  <Textarea id="code" {...register('code')} placeholder="#include <stdio.h> ..." rows={8} className="font-code"/>
                   {errors.code && <p className="text-destructive text-sm">{errors.code.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="correctedCode">Corrected C Code</Label>
+                  <Textarea id="correctedCode" {...register('correctedCode')} placeholder="#include <stdio.h> ..." rows={8} className="font-code"/>
+                  {errors.correctedCode && <p className="text-destructive text-sm">{errors.correctedCode.message}</p>}
                 </div>
               </CardContent>
               <CardFooter className='justify-between'>
@@ -152,8 +159,13 @@ export default function ManageRound2() {
                         <div className='flex-1'>
                           <p className="font-semibold">{s.title}</p>
                            <pre className="whitespace-pre-wrap font-code text-sm bg-muted p-2 rounded-md mt-2">
-                                <code>
+                                <code className='text-red-400'>
                                     {s.code}
+                                </code>
+                           </pre>
+                            <pre className="whitespace-pre-wrap font-code text-sm bg-muted p-2 rounded-md mt-2">
+                                <code className='text-green-400'>
+                                    {s.correctedCode}
                                 </code>
                            </pre>
                         </div>
@@ -188,4 +200,3 @@ export default function ManageRound2() {
     </div>
   );
 }
-

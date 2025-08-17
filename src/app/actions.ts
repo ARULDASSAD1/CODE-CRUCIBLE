@@ -102,6 +102,7 @@ export type Round2Snippet = {
     id: string;
     title: string;
     code: string;
+    correctedCode: string;
 }
 
 export async function getRound2Snippets(): Promise<Round2Snippet[]> {
