@@ -13,6 +13,7 @@ const dataPath = path.join(process.cwd(), 'data');
 const instructionsPath = path.join(dataPath, 'instructions.json');
 const mcqsPath = path.join(dataPath, 'round1-mcqs.json');
 const round2SnippetsPath = path.join(dataPath, 'round2-snippets.json');
+const round3ProblemsPath = path.join(dataPath, 'round3-problems.json');
 const participantsPath = path.join(dataPath, 'participants.json');
 
 
@@ -25,6 +26,8 @@ async function ensureDbReady() {
 }
 
 // ============== CODE COMPILATION ==============
+// Normalizes newline characters and trims trailing whitespace.
+const normalizeOutput = (output: string) => output.replace(/\r\n/g, '\n').trim();
 
 export async function compileAndRunCode(code: string, input: string): Promise<{ output: string, success: boolean }> {
     try {
@@ -34,14 +37,14 @@ export async function compileAndRunCode(code: string, input: string): Promise<{ 
       // Success is true only if there's no error object and no stderr output.
       const success = !result.error && !result.stderr;
       return {
-        output: output,
+        output: normalizeOutput(output),
         success: success,
       };
     } catch (error: any) {
       // Ensure there's always a string output even in case of a crash.
       const output = error.stderr || error.message || 'An unexpected error occurred during compilation.';
       return {
-        output: output,
+        output: normalizeOutput(output),
         success: false,
       };
     }
@@ -164,6 +167,43 @@ export async function deleteRound2Snippet(id: string): Promise<void> {
 }
 
 
+// ============== ROUND 3: CODING ==============
+
+export type Round3Problem = {
+    id: string;
+    title: string;
+    description: string;
+    publicTestCases: TestCase[];
+    privateTestCases: TestCase[];
+};
+
+export async function getRound3Problems(): Promise<Round3Problem[]> {
+    await ensureDbReady();
+    try {
+        const fileContent = await fs.readFile(round3ProblemsPath, 'utf8');
+        return JSON.parse(fileContent);
+    } catch (error) {
+        return [];
+    }
+}
+
+export async function saveRound3Problem(problem: Omit<Round3Problem, 'id'>): Promise<void> {
+    const problems = await getRound3Problems();
+    const newProblem: Round3Problem = {
+        ...problem,
+        id: new Date().toISOString() + Math.random(),
+    };
+    problems.push(newProblem);
+    await fs.writeFile(round3ProblemsPath, JSON.stringify(problems, null, 2), 'utf8');
+}
+
+export async function deleteRound3Problem(id: string): Promise<void> {
+    let problems = await getRound3Problems();
+    problems = problems.filter(p => p.id !== id);
+    await fs.writeFile(round3ProblemsPath, JSON.stringify(problems, null, 2), 'utf8');
+}
+
+
 // ============== PARTICIPANTS ==============
 
 export type Participant = {
@@ -183,6 +223,11 @@ export type Participant = {
         submissions: { snippetId: string, code: string, passed: boolean }[];
         submittedAt: string; // ISO string
     };
+    round3?: {
+        score: number;
+        submissions: { problemId: string, code: string, passed: boolean }[];
+        submittedAt: string; // ISO string
+    };
     disqualified?: boolean;
 };
 
@@ -196,7 +241,7 @@ export async function getParticipants(): Promise<Participant[]> {
     }
 }
 
-export async function saveParticipant(participantData: Omit<Participant, 'id' | 'round1' | 'round2' | 'disqualified'>): Promise<Participant> {
+export async function saveParticipant(participantData: Omit<Participant, 'id' | 'round1' | 'round2' | 'round3' | 'disqualified'>): Promise<Participant> {
     const participants = await getParticipants();
     const newParticipant: Participant = {
         id: new Date().toISOString() + Math.random(), // Simple unique ID
@@ -207,7 +252,7 @@ export async function saveParticipant(participantData: Omit<Participant, 'id' | 
         dept: participantData.dept,
     };
     participants.push(newParticipant);
-    await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
+await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
     return newParticipant;
 }
 
@@ -276,7 +321,7 @@ export async function submitRound1Answers(participantId: string, answers: { ques
     return { score };
 }
 
-// ============= ROUND 2: TEST RUNNER & SUBMISSION =============
+// ============= TEST RUNNERS & SUBMISSIONS =============
 
 export type TestCaseResult = {
     input: string;
@@ -285,8 +330,21 @@ export type TestCaseResult = {
     passed: boolean;
 };
 
-// Normalizes newline characters and trims trailing whitespace.
-const normalizeOutput = (output: string) => output.replace(/\r\n/g, '\n').trim();
+async function runTestsForProblem(userCode: string, testCases: TestCase[]): Promise<TestCaseResult[]> {
+    const results: TestCaseResult[] = [];
+    for (const testCase of testCases) {
+        const { output: actualOutputRaw, success } = await compileAndRunCode(userCode, testCase.input);
+        const actualOutput = normalizeOutput(actualOutputRaw);
+        const expectedOutput = normalizeOutput(testCase.expectedOutput);
+        
+        results.push({
+            ...testCase,
+            actualOutput,
+            passed: success && actualOutput === expectedOutput
+        });
+    }
+    return results;
+}
 
 export async function runRound2Tests(userCode: string, snippetId: string): Promise<{ publicResults: TestCaseResult[], privateResults: Pick<TestCaseResult, 'passed'>[] }> {
     const snippets = await getRound2Snippets();
@@ -296,20 +354,8 @@ export async function runRound2Tests(userCode: string, snippetId: string): Promi
         throw new Error("Debugging snippet not found.");
     }
 
-    const runTest = async (testCase: TestCase): Promise<TestCaseResult> => {
-        const { output: actualOutputRaw } = await compileAndRunCode(userCode, testCase.input);
-        const actualOutput = normalizeOutput(actualOutputRaw);
-        const expectedOutput = normalizeOutput(testCase.expectedOutput);
-        
-        return {
-            ...testCase,
-            actualOutput,
-            passed: actualOutput === expectedOutput
-        };
-    };
-
-    const publicResults = await Promise.all(snippet.publicTestCases.map(runTest));
-    const privateTestResults = await Promise.all(snippet.privateTestCases.map(runTest));
+    const publicResults = await runTestsForProblem(userCode, snippet.publicTestCases);
+    const privateTestResults = await runTestsForProblem(userCode, snippet.privateTestCases);
     
     const privateResults = privateTestResults.map(res => ({ passed: res.passed }));
 
@@ -333,13 +379,11 @@ export async function submitRound2(participantId: string, submissions: Round2Sub
         const allTestCases = [...snippet.publicTestCases, ...snippet.privateTestCases];
         let allPassed = true;
 
-        for (const testCase of allTestCases) {
-            const { output: actualOutputRaw } = await compileAndRunCode(submission.code, testCase.input);
-            const actualOutput = normalizeOutput(actualOutputRaw);
-            const expectedOutput = normalizeOutput(testCase.expectedOutput);
-            if (actualOutput !== expectedOutput) {
+        const testResults = await runTestsForProblem(submission.code, allTestCases);
+        for (const result of testResults) {
+            if (!result.passed) {
                 allPassed = false;
-                break; 
+                break;
             }
         }
         
@@ -358,6 +402,72 @@ export async function submitRound2(participantId: string, submissions: Round2Sub
     }
 
     participants[participantIndex].round2 = {
+        score,
+        submissions: detailedSubmissions,
+        submittedAt: new Date().toISOString()
+    };
+
+    await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
+    return { score };
+}
+
+
+export async function runRound3Tests(userCode: string, problemId: string): Promise<{ publicResults: TestCaseResult[], privateResults: Pick<TestCaseResult, 'passed'>[] }> {
+    const problems = await getRound3Problems();
+    const problem = problems.find(p => p.id === problemId);
+
+    if (!problem) {
+        throw new Error("Coding problem not found.");
+    }
+
+    const publicResults = await runTestsForProblem(userCode, problem.publicTestCases);
+    const privateTestResults = await runTestsForProblem(userCode, problem.privateTestCases);
+    
+    const privateResults = privateTestResults.map(res => ({ passed: res.passed }));
+
+    return { publicResults, privateResults };
+}
+
+type Round3Submission = {
+    problemId: string;
+    code: string;
+}
+
+export async function submitRound3(participantId: string, submissions: Round3Submission[]) {
+    const allProblems = await getRound3Problems();
+    let score = 0;
+    const detailedSubmissions: Participant['round3']['submissions'] = [];
+
+    for (const submission of submissions) {
+        const problem = allProblems.find(p => p.id === submission.problemId);
+        if (!problem) continue;
+
+        const allTestCases = [...problem.publicTestCases, ...problem.privateTestCases];
+        let allPassed = true;
+
+        const testResults = await runTestsForProblem(submission.code, allTestCases);
+        for (const result of testResults) {
+            if (!result.passed) {
+                allPassed = false;
+                break;
+            }
+        }
+        
+        detailedSubmissions.push({ ...submission, passed: allPassed });
+
+        if (allPassed) {
+            score += 20; // 20 points for each correctly solved problem
+        }
+    }
+
+    const participants = await getParticipants();
+    const participantIndex = participants.findIndex(p => p.id === participantId);
+
+    if (participantIndex === -1) {
+        throw new Error("Participant not found");
+    }
+
+    participants[participantIndex].round3 = {
         score,
         submissions: detailedSubmissions,
         submittedAt: new Date().toISOString()

@@ -103,7 +103,7 @@ export default function ParticipantPortal() {
               </CardHeader>
               <CardContent>
                 <Link href="/participant/round3" passHref>
-                  <Button className="w-full" disabled>Start Round 3</Button>
+                  <Button className="w-full">Start Round 3</Button>
                 </Link>
               </CardContent>
             </Card>

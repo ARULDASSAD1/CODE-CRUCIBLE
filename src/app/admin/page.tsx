@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Users, FileText, ClipboardCheck, BarChart2, Info, UserCheck } from "lucide-react";
+import { Users, FileText, ClipboardCheck, BarChart2, Info, UserCheck, Code } from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -92,16 +92,18 @@ export default function AdminDashboard() {
                   <Button className="w-full">Manage Round 2</Button>
                 </Link>
               </CardContent>
-            </Card>
+            </card>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <ClipboardCheck /> Round 3: Coding
+                  <Code /> Round 3: Coding
                 </CardTitle>
-                <CardDescription>This feature is not yet available.</CardDescription>
+                <CardDescription>Manage programming challenges.</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button className="w-full" disabled>Manage Round 3</Button>
+                <Link href="/admin/round3" passHref>
+                  <Button className="w-full">Manage Round 3</Button>
+                </Link>
               </CardContent>
             </Card>
             <Card>
