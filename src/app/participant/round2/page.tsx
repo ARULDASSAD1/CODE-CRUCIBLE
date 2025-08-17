@@ -61,9 +61,13 @@ export default function ParticipantRound2() {
         setConsoleContent(prev => prev + compilingMessage);
 
         try {
+            // We send the whole console content as input.
             const result = await compileAndRunCode(code, consoleContent);
-            const output = result.output; // The output from the compiler/program
+            
+            // The full output (stdout + stderr) from the compilation/run
+            const output = result.output; 
 
+            // Append the new output to the console
             setConsoleContent(prev => prev + output);
 
             if (result.success) {

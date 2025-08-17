@@ -33,10 +33,12 @@ export async function compileAndRunC(code: string, input: string = ''): Promise<
 
         // Compile the C code using gcc
         try {
-             await execAsync(`gcc ${cFilePath} -o ${finalExePath}`);
+             // Use -o flag to specify output file
+             await execAsync(`gcc "${cFilePath}" -o "${finalExePath}"`);
         } catch(compilationError: any) {
-            // If compilation fails, return the compiler error
-             return { stdout: '', stderr: compilationError.stderr, error: compilationError };
+            // If compilation fails, return the compiler error and clean up the C file
+            await fs.unlink(cFilePath).catch(() => {});
+            return { stdout: '', stderr: compilationError.stderr, error: compilationError };
         }
 
         // Execute the compiled program
@@ -48,6 +50,7 @@ export async function compileAndRunC(code: string, input: string = ''): Promise<
             // Set a timeout to prevent hanging forever (e.g., from an infinite loop)
             const timeout = setTimeout(() => {
                 child.kill(); 
+                // The process was killed, so we resolve with an error message in stderr
                 resolve({ stdout, stderr: stderr + '\nError: Process timed out after 5 seconds.'});
             }, 5000); 
 
@@ -55,7 +58,7 @@ export async function compileAndRunC(code: string, input: string = ''): Promise<
             if (input) {
                 child.stdin.write(input);
             }
-            child.stdin.end();
+            child.stdin.end(); // Close stdin to signal that no more input will be sent
 
             child.stdout.on('data', (data) => {
                 stdout += data.toString();
@@ -67,20 +70,23 @@ export async function compileAndRunC(code: string, input: string = ''): Promise<
 
             child.on('close', (code) => {
                 clearTimeout(timeout);
+                // The process finished on its own
                 resolve({ stdout, stderr });
             });
             
             child.on('error', (err) => {
                 clearTimeout(timeout);
+                // An error occurred spawning or running the process
                 resolve({ stdout: '', stderr: err.message, error: err });
             });
         });
 
     } finally {
         // Cleanup: delete the temporary files
-        await Promise.all([
-            fs.unlink(cFilePath).catch(() => {}), // Ignore errors if file doesn't exist
-            fs.unlink(finalExePath).catch(() => {})
-        ]);
+        // Use a slight delay to ensure the process has released file handles
+        setTimeout(() => {
+             fs.unlink(cFilePath).catch(() => {}); // Ignore errors if file doesn't exist
+             fs.unlink(finalExePath).catch(() => {});
+        }, 100);
     }
 }
