@@ -61,8 +61,11 @@ export default function ParticipantRound2() {
         
         script.onload = () => {
             if (window.TCC && typeof window.TCC.init === 'function') {
-                window.TCC.init().then((loadedTcc: any) => {
+                window.TCC.init({
+                    wasm_path: '/tcc.wasm'
+                }).then((loadedTcc: any) => {
                     tcc.current = loadedTcc;
+                    tcc.current.init();
                     setIsCompilerReady(true);
                     setOutput('Compiler loaded. Ready to run code.');
                     toast({ title: "Compiler Ready", description: "The C compiler has loaded successfully." });
@@ -100,11 +103,10 @@ export default function ParticipantRound2() {
 
         setIsCompiling(true);
         setOutput('Compiling and running...');
+        let captured_stdout = "";
+        let captured_stderr = "";
 
         try {
-            let captured_stdout = "";
-            let captured_stderr = "";
-            
             tcc.current.set_stdout(function(c: number) { captured_stdout += String.fromCharCode(c) });
             tcc.current.set_stderr(function(c: number) { captured_stderr += String.fromCharCode(c) });
 
@@ -113,8 +115,9 @@ export default function ParticipantRound2() {
             if (exit_code !== 0) {
                 setOutput(`Compilation failed:\n${captured_stderr || "Check code for errors."}`);
             } else {
-                 const run_exit_code = tcc.current.run("main");
-                 setOutput(`Program exited with code ${run_exit_code}.\nOutput:\n-------\n${captured_stdout}`);
+                 tcc.current.run("main");
+                 const finalOutput = captured_stdout || captured_stderr || "Program executed without output.";
+                 setOutput(`Program exited.\nOutput:\n-------\n${finalOutput}`);
             }
         } catch (e: any) {
             console.error("Compilation/Execution error:", e);
