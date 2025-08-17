@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Users, FileText, ClipboardCheck, BarChart2, Info, UserCheck, Code } from "lucide-react";
+import { Users, FileText, BarChart2, Info, UserCheck, Code } from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -92,7 +92,7 @@ export default function AdminDashboard() {
                   <Button className="w-full">Manage Round 2</Button>
                 </Link>
               </CardContent>
-            </card>
+            </Card>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
