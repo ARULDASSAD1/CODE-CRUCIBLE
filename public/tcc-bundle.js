@@ -1,337 +1,584 @@
 
-(function(global) {
-    var TCC = (function() {
-        var stdout_func = null;
-        var stderr_func = null;
+window.TCC = (function() {
+  var TCC = TCC || {};
+  var Module = TCC;
+  Module.noInitialRun = true;
+  var HEAP, HEAPU8, HEAPU16, HEAPU32, HEAP16, HEAP32, HEAPF32, HEAPF64;
+  var STACK_TOTAL = 5242880;
+  var STACK_BASE = 8192;
+  var STACK_MAX = STACK_BASE + STACK_TOTAL;
 
-        function c_stdout(c) {
-            if (stdout_func) {
-                stdout_func(c);
-            } else {
-                console.log(String.fromCharCode(c));
-            }
+  function TCClib_run_main(str) {
+    var argc = 0,
+      argv = 0;
+    if (str) {
+      var str_array = str.split(' ');
+      argc = str_array.length;
+      argv = Module._malloc(4 * (argc + 1));
+      for (var i = 0; i < argc; i++) {
+        Module.setValue(argv + i * 4, Module.allocate(Module.intArrayFromString(str_array[i]), 'i8', 0), '*');
+      }
+      Module.setValue(argv + argc * 4, 0, '*');
+    }
+    return Module.ccall('main', 'number', ['number', 'number'], [argc, argv]);
+  }
+
+  function TCClib_compile(code) {
+    if (TCC.compiled) {
+      TCC.compiled = false;
+      Module._free(TCC.reloc_ptr);
+    }
+    var code_ptr = Module.allocate(Module.intArrayFromString(code), 'i8', 0);
+    var reloc_ptr = Module.ccall('tcc_compile', 'number', ['string'], [code]);
+    Module._free(code_ptr);
+    if (reloc_ptr) {
+      TCC.reloc_ptr = reloc_ptr;
+      TCC.compiled = true;
+      return 0;
+    } else {
+      return 1;
+    }
+  }
+
+  function TCClib_run(func_name) {
+    if (!TCC.compiled) {
+      TCC.stderr_string = "Error: Nothing to run";
+      return 1;
+    }
+    var func = Module.find_symbol(func_name);
+    if (!func) {
+      TCC.stderr_string = "Error: Symbol '" + func_name + "' not found.";
+      return 1;
+    }
+    try {
+      return Module.dynCall('i', func, []);
+    } catch (e) {
+      TCC.stderr_string = "Error: Runtime error in '" + func_name + "'";
+      return 1;
+    }
+  }
+
+  function TCClib_find_symbol(sym) {
+    return TCC.compiled ? Module.find_symbol(sym) : 0;
+  }
+
+  var stdout_buffer = [];
+
+  function TCClib_set_stdout(f) {
+    stdout_buffer = [];
+    if (f) {
+      TCC.stdout_func = function(c) {
+        if (c === 10) {
+          f(String.fromCharCode.apply(null, stdout_buffer));
+          stdout_buffer = [];
+        } else {
+          stdout_buffer.push(c);
         }
+      }
+    } else {
+      TCC.stdout_func = null;
+    }
+  }
+  var stderr_buffer = [];
 
-        function c_stderr(c) {
-            if (stderr_func) {
-                stderr_func(c);
-            } else {
-                console.error(String.fromCharCode(c));
-            }
+  function TCClib_set_stderr(f) {
+    stderr_buffer = [];
+    if (f) {
+      TCC.stderr_func = function(c) {
+        if (c === 10) {
+          f(String.fromCharCode.apply(null, stderr_buffer));
+          stderr_buffer = [];
+        } else {
+          stderr_buffer.push(c);
         }
+      }
+    } else {
+      TCC.stderr_func = null;
+    }
+  }
+  Module.print = function(text) {
+    if (TCC.stdout_func) {
+      for (var i = 0; i < text.length; i++) {
+        TCC.stdout_func(text.charCodeAt(i));
+      }
+    }
+  }
+  Module.printErr = function(text) {
+    if (TCC.stderr_func) {
+      for (var i = 0; i < text.length; i++) {
+        TCC.stderr_func(text.charCodeAt(i));
+      }
+    }
+  }
+  TCC = {
+    HEAPU8: HEAPU8,
+    compiled: false,
+    reloc_ptr: 0,
+    stderr_string: "",
+    compile: TCClib_compile,
+    run: TCClib_run,
+    run_main: TCClib_run_main,
+    find_symbol: TCClib_find_symbol,
+    set_stdout: TCClib_set_stdout,
+    set_stderr: TCClib_set_stderr
+  };
+  TCC.stdout_func = null;
+  TCC.stderr_func = null;
 
-        var TCC_initialized = false;
-        var TCC_module = {};
-
-        function init(options) {
-            options = options || {};
-            return new Promise(function(resolve, reject) {
-                if (TCC_initialized) {
-                    resolve();
-                    return;
-                }
-                var wasm_path = options.wasm_path || 'tcc.wasm';
-
-                TCC_module = {
-                    wasm_binary: null,
-                    noInitialRun: true,
-                    print: c_stdout,
-                    printErr: c_stderr,
-                    onRuntimeInitialized: function() {
-                        TCC_initialized = true;
-                        resolve({
-                            compile: TCC_module.cwrap('tcc_compile', 'number', ['string']),
-                            run: TCC_module.cwrap('tcc_run', 'number', ['string']),
-                            set_stdout: function(func) { stdout_func = func; },
-                            set_stderr: function(func) { stderr_func = func; },
-                        });
-                    }
-                };
-
-                var xhr = new XMLHttpRequest();
-                xhr.open('GET', wasm_path, true);
-                xhr.responseType = 'arraybuffer';
-                xhr.onload = function() {
-                    if (xhr.status == 200) {
-                        TCC_module.wasmBinary = xhr.response;
-                        var script = document.createElement('script');
-                        script.src = 'tcc.js'; // This is a script that Emscripten generates alongside wasm
-                        document.body.appendChild(script);
-                         // This is a placeholder for where the actual TCC wasm-loader would be
-                        setTimeout(() => {
-                           if(global.TCC_WASM_MODULE){
-                               global.TCC_WASM_MODULE(TCC_module);
-                           } else {
-                                reject(new Error("TCC wasm module loader not found"));
-                           }
-                        }, 100);
-
-                    } else {
-                        reject(new Error("Failed to load wasm binary: " + xhr.statusText));
-                    }
-                };
-                 xhr.onerror = function() {
-                    reject(new Error("Failed to load wasm binary."));
-                };
-                xhr.send(null);
-            });
+  var memoryInitializer = "tcc.wasm";
+  var wasmBinaryFile = "tcc.wasm";
+  var wasmBinary;
+  var wasmPageSize = 65536;
+  var wasmMinMem = 16777216;
+  var wasmMaxMem = 16777216;
+  Module.preInit = [];
+  Module.preRun = [];
+  Module.postRun = [];
+  var WasmPromise;
+  var ASM_CONSTS = {
+    1048576: function() {
+      return TCC.stderr_string
+    }
+  };
+  Module.asmLibraryArg = {
+    a: Math.abs,
+    b: Math.acos,
+    c: Math.asin,
+    d: Math.atan,
+    e: Math.atan2,
+    f: Math.ceil,
+    g: Math.cos,
+    h: Math.exp,
+    i: Math.floor,
+    j: Math.log,
+    k: Math.pow,
+    l: Math.sin,
+    m: Math.sqrt,
+    n: Math.tan,
+    o: function(p) {
+      return TCC.stdout_func ? TCC.stdout_func(p) : null
+    },
+    p: function(p) {
+      return TCC.stderr_func ? TCC.stderr_func(p) : null
+    }
+  };
+  (function() {
+    var p = Module.preRun.shift();
+    Module.preRun.unshift(function() {
+      if (p) {
+        p()
+      }
+      for (var q in ASM_CONSTS) {
+        if (ASM_CONSTS.hasOwnProperty(q)) {
+          Module.asmLibraryArg[q] = ASM_CONSTS[q]
         }
-        return { init: init };
-    })();
-    global.TCC = TCC;
-})(window);
+      }
+    })
+  })();
 
+  function updateGlobalBuffer(p) {
+    Module.HEAPU8 = HEAPU8 = p
+  }
 
-// This is the actual emscripten-generated loader script for tcc.wasm,
-// which we are embedding here for simplicity. It defines TCC_WASM_MODULE.
-var TCC_WASM_MODULE;
-if (typeof Module !== "undefined") {
-    TCC_WASM_MODULE = Module
+  function updateGlobalBufferViews(p) {
+    Module.HEAPU8 = HEAPU8 = p;
+    Module.HEAP16 = HEAP16 = new Int16Array(p.buffer);
+    Module.HEAPU16 = HEAPU16 = new Uint16Array(p.buffer);
+    Module.HEAP32 = HEAP32 = new Int32Array(p.buffer);
+    Module.HEAPU32 = HEAPU32 = new Uint32Array(p.buffer);
+    Module.HEAPF32 = HEAPF32 = new Float32Array(p.buffer);
+    Module.HEAPF64 = HEAPF64 = new Float64Array(p.buffer)
+  }
+  var unfulfilledWasmPromises = [];
+  var wasmImports = [];
+  var wasmExports = [];
+
+  function writeStackCookie(p) {
+    var q = STACK_MAX - p;
+    Module.setValue(q, 21535216, "i32");
+    Module.setValue(q + 4, 1234567, "i32")
+  }
+
+  function checkStackCookie() {
+    var p;
+    try {
+      p = HEAPU8.length
+    } catch (q) {
+      return
+    }
+    var r = Module.getValue(p - 16, "i32");
+    var s = Module.getValue(p - 12, "i32");
+    if (r !== 21535216 || s !== 1234567) {
+      abortStackOverflow(p - 16)
+    }
+  }
+
+  function abortStackOverflow(p) {
+    abort("Stack overflow! Attempted to write to byte " + p + ", but stack is only " + STACK_TOTAL + " bytes tall from " + STACK_BASE + " to " + (STACK_BASE + STACK_TOTAL))
+  }
+  var UTF8Decoder = typeof TextDecoder !== "undefined" ? new TextDecoder("utf8") : undefined;
+
+  function demangle(p) {
+    try {
+      if (p && Module["___cxa_demangle"]) {
+        var q = Module.allocate(Module.intArrayFromString(p), "i8", 0);
+        var r = Module["___cxa_demangle"](q, 0, 0, 0);
+        if (r) {
+          var s = Pointer_stringify(r);
+          Module._free(r)
+        }
+      }
+      return s || p
+    } finally {
+      if (q) Module._free(q)
+    }
+  }
+
+  function demangleAll(p) {
+    return p.replace(/_Z[\w\d_]+/g, function(q) {
+      var r = demangle(q);
+      return r === q ? q : r + " [" + q + "]"
+    })
+  }
+
+  function jsStackTrace() {
+    var p = new Error;
+    if (!p.stack) {
+      try {
+        throw new Error
+      } catch (q) {
+        p = q
+      }
+      if (!p.stack) {
+        return "(no stack trace available)"
+      }
+    }
+    return p.stack.toString()
+  }
+
+  function stackTrace() {
+    var p = jsStackTrace();
+    if (Module.extraStackTrace) {
+      p += "\n" + Module.extraStackTrace()
+    }
+    return demangleAll(p)
+  }
+  var PAGE_SIZE = 4096;
+
+  function alignMemory(p, q) {
+    var r = p % q > 0 ? p - p % q + q : p;
+    return r
+  }
+  var HEAP;
+  var buffer;
+  var HEAP8, HEAPU8, HEAP16, HEAPU16, HEAP32, HEAPU32, HEAPF32, HEAPF64;
+  updateGlobalBuffer(new ArrayBuffer(16777216));
+  updateGlobalBufferViews(HEAPU8);
+
+  function callRuntimeCallbacks(p) {
+    while (p.length > 0) {
+      var q = p.shift();
+      if (typeof q == "function") {
+        q();
+        continue
+      }
+      var r = q.func;
+      if (typeof r === "number") {
+        if (q.arg === undefined) {
+          Module.dynCall_v(r)
+        } else {
+          Module.dynCall_vi(r, q.arg)
+        }
+      } else {
+        r(q.arg === undefined ? null : q.arg)
+      }
+    }
+  }
+  var __ATPRERUN__ = [];
+  var __ATINIT__ = [];
+  var __ATMAIN__ = [];
+  var __ATEXIT__ = [];
+  var __ATPOSTRUN__ = [];
+  var runtimeInitialized = false;
+  var runtimeExited = false;
+
+  function preRun() {
+    if (Module.preRun) {
+      if (typeof Module.preRun == "function") Module.preRun = [Module.preRun];
+      while (Module.preRun.length) {
+        addOnPreRun(Module.preRun.shift())
+      }
+    }
+    callRuntimeCallbacks(__ATPRERUN__)
+  }
+
+  function initRuntime() {
+    runtimeInitialized = true;
+    callRuntimeCallbacks(__ATINIT__)
+  }
+
+  function postRun() {
+    if (Module.postRun) {
+      if (typeof Module.postRun == "function") Module.postRun = [Module.postRun];
+      while (Module.postRun.length) {
+        addOnPostRun(Module.postRun.shift())
+      }
+    }
+    callRuntimeCallbacks(__ATPOSTRUN__)
+  }
+
+  function addOnPreRun(p) {
+    __ATPRERUN__.unshift(p)
+  }
+
+  function addOnInit(p) {
+    __ATINIT__.unshift(p)
+  }
+
+  function addOnPostRun(p) {
+    __ATPOSTRUN__.unshift(p)
+  }
+  var runDependencies = 0;
+  var runDependencyWatcher = null;
+  var dependenciesFulfilled = null;
+
+  function addDependency(p) {
+    runDependencies++;
+    if (Module.monitorRunDependencies) {
+      Module.monitorRunDependencies(runDependencies)
+    }
+  }
+
+  function removeDependency(p) {
+    runDependencies--;
+    if (Module.monitorRunDependencies) {
+      Module.monitorRunDependencies(runDependencies)
+    }
+    if (runDependencies == 0) {
+      if (runDependencyWatcher !== null) {
+        clearInterval(runDependencyWatcher);
+        runDependencyWatcher = null
+      }
+      if (dependenciesFulfilled) {
+        var q = dependenciesFulfilled;
+        dependenciesFulfilled = null;
+        q()
+      }
+    }
+  }
+  Module.preloadedImages = {};
+  Module.preloadedAudios = {};
+
+  function abort(p) {
+    if (Module["onAbort"]) {
+      Module["onAbort"](p)
+    }
+    if (typeof p !== "string") {
+      p = JSON.stringify(p)
+    }
+    var q = "Aborted(" + p + ")";
+    var r = "";
+    if (p) {
+      var s = p.toString();
+      var t = s.indexOf("\n");
+      if (t !== -1) {
+        r = s.slice(0, t)
+      } else {
+        r = s
+      }
+    }
+    throw "Aborted(" + p + ")";
+  }
+  if (typeof WebAssembly !== "object") {
+    Module.printErr("no wasm support found")
+  }
+  var wasmMemory;
+  var wasmTable;
+  var ABORT = false;
+  var HEAP_SIZE = 16777216;
+
+  function alignUp(p, q) {
+    return p + (q - p % q) % q
+  }
+  vargb = 8192;
+  var CodeInfo = function() {
+    this.start = 0;
+    this.end = 0;
+    this.stack_base = 0;
+    this.stack_max = 0
+  };
+  CodeInfo.prototype = {
+    set: function(p, q, r, s) {
+      this.start = p;
+      this.end = q;
+      this.stack_base = r;
+      this.stack_max = s
+    }
+  };
+  var ci = new CodeInfo;
+  var GLOBAL_BASE = 8192;
+  var STATIC_BASE = 8192,
+    STATIC_TOP = STATIC_BASE + 6896,
+    STATICTOP = STATIC_TOP;
+  var an = false;
+  Module["ALLOC_STATIC"] = 1;
+  Module["memoryClass"] = WebAssembly.Memory;
+  Module["wasmMemory"] = new WebAssembly.Memory({
+    initial: 256
+  });
+  Module.asm = function(p, q, r) {
+    var s = new WebAssembly.Instance(wasmBinary, {
+      "global.Math": p,
+      env: q,
+      "global.asax-": r
+    }).exports;
+    return s
+  };
+  addDependency("wasm-instantiate");
+
+  function receiveInstance(p, q) {
+    var r = p.exports;
+    Module.asm = r;
+    wasmMemory = Module.asm["hb"];
+    wasmTable = Module.asm["zb"];
+    updateGlobalBuffer(wasmMemory.buffer);
+    updateGlobalBufferViews(HEAPU8);
+    Module.asm.Ab();
+    removeDependency("wasm-instantiate");
+    if (Module.onRuntimeInitialized) Module.onRuntimeInitialized()
+  }
+
+_free = function() {
+return Module.asm.Eb.apply(null, arguments)
+};
+tcc_compile = function() {
+return Module.asm.ub.apply(null, arguments)
+};
+find_symbol = function() {
+return Module.asm.vb.apply(null, arguments)
+};
+_malloc = function() {
+return Module.asm.Db.apply(null, arguments)
+};
+getValue = function() {
+return Module.asm.yb.apply(null, arguments)
+};
+setValue = function() {
+return Module.asm.xb.apply(null, arguments)
+};
+ccall = function() {
+return Module.asm.wb.apply(null, arguments)
+};
+addFunction = function() {
+return Module.asm.zb.apply(null, arguments)
+};
+removeFunction = function() {
+return Module.asm.Bb.apply(null, arguments)
+};
+var calledRun;
+Module["then"] = function(p) {
+if(calledRun) {
+p(Module);
+return
+}
+var q = function() {
+p(Module)
+};
+addOnPostRun(q);
+return this
+};
+function init(p) {
+p = p || {};
+if (p.wasm_path) {
+memoryInitializer = p.wasm_path
+}
+WasmPromise = new Promise(function(q, r) {
+if(typeof exports === "object" && typeof module === "object") {
+var s = require("fs");
+var t = require("path");
+wasmBinaryFile = t.join(p.wasm_path, "tcc.wasm");
+wasmBinary = s.readFileSync(wasmBinaryFile);
+q(new WebAssembly.Module(wasmBinary))
 } else {
-    TCC_WASM_MODULE = (function(e) {
-        var t = {};
-
-        function n(r) {
-            if (t[r]) return t[r].exports;
-            var i = t[r] = {
-                i: r,
-                l: !1,
-                exports: {}
-            };
-            return e[r].call(i.exports, i, i.exports, n), i.l = !0, i.exports
-        }
-        return n.m = e, n.c = t, n.d = function(e, t, r) {
-            n.o(e, t) || Object.defineProperty(e, t, {
-                enumerable: !0,
-                get: r
-            })
-        }, n.r = function(e) {
-            "undefined" != typeof Symbol && Symbol.toStringTag && Object.defineProperty(e, Symbol.toStringTag, {
-                value: "Module"
-            }), Object.defineProperty(e, "__esModule", {
-                value: !0
-            })
-        }, n.t = function(e, t) {
-            if (1 & t && (e = n(e)), 8 & t) return e;
-            if (4 & t && "object" == typeof e && e && e.__esModule) return e;
-            var r = Object.create(null);
-            if (n.r(r), Object.defineProperty(r, "default", {
-                    enumerable: !0,
-                    value: e
-                }), 2 & t && "string" != typeof e)
-                for (var i in e) n.d(r, i, function(t) {
-                    return e[t]
-                }.bind(null, i));
-            return r
-        }, n.n = function(e) {
-            var t = e && e.__esModule ? function() {
-                return e.default
-            } : function() {
-                return e
-            };
-            return n.d(t, "a", t), t
-        }, n.o = function(e, t) {
-            return Object.prototype.hasOwnProperty.call(e, t)
-        }, n.p = "", n(n.s = 0)
-    })([function(e, t, n) {
-        "use strict";
-        var r, i = "undefined" != typeof document && document.currentScript ? document.currentScript.src : void 0;
-        "undefined" != typeof __filename && (i = i || __filename), e.exports = function(e) {
-            e = e || {}, "function" == typeof e || e.buffer || "function" == typeof e.next && "function" == typeof e.buffer && "function" == typeof e.read, e.wasmBinary && (e.wasmBinary = new Uint8Array(e.wasmBinary));
-            var t = "object" == typeof window,
-                o = "function" == typeof importScripts,
-                a = "",
-                s = "",
-                c = "";
-            if (t || o) {
-                if (o) s = self.location.href;
-                else if ("string" == typeof i) s = i;
-                else if (document.currentScript) s = document.currentScript.src;
-                s.indexOf("blob:") !== 0 ? a = s.substr(0, s.lastIndexOf("/") + 1) : a = "", c = a
-            }
-            var u = {
-                "f64-rem": function(e, t) {
-                    return e % t
-                },
-                "debugger": function() {
-                    debugger
-                }
-            };
-
-            function l(t) {
-                var n = e.preRun.shift();
-                p.unshift(t), n || (e.postRun.length > 0 ? (e.postRun.shift()(), d.unshift(l)) : e.onDone && e.onDone(r))
-            }
-            var f = {
-                    f: 128,
-                    h: .5,
-                    j: 1,
-                    l: 2,
-                    p: 4,
-                    r: 8
-                },
-                p = [],
-                d = [],
-                h = {},
-                g = !1;
-            return new Promise(function(t, i) {
-                e.onDone = t, e.onAbort = i, e.preRun = e.preRun || [], e.postRun = e.postRun || [], p.push(function(t) {
-                    e.postRun.length > 0 ? (e.postRun.shift()(), d.unshift(l)) : e.onDone && e.onDone(r)
-                }), e.onRuntimeInitialized = function() {
-                    g = !0, d.push(l)
-                }, e.onWasmInitialized = function(e) {}, e.onFirstWasmChunk = e.onFirstWasmChunk || function() {};
-                var b = {
-                    global: null,
-                    env: null,
-                    asm2wasm: u,
-                    parent: e
-                };
-                r = function(e, t) {
-                    function n() {
-                        var e = Error("Trying to call a function in a terminated WebAssembly module. Build with -sNO_EXIT_RUNTIME=1 to keep the module alive indefinitely.");
-                        throw e.stack = void 0, e
-                    }
-                    var r = t.providedTotalInitialMemory || e.TOTAL_INITIAL_MEMORY || 16777216,
-                        i = e.buffer,
-                        o = i || new ArrayBuffer(r),
-                        a = {},
-                        s = e.stack_base || 5242880,
-                        c = e.stack_max || s + 65536,
-                        l = e.global_base || 1024,
-                        g = e.dynamictop_ptr || 67840;
-                    e.wasmMemory ? a.memory = e.wasmMemory : a.memory = new WebAssembly.Memory({
-                        initial: o.byteLength / 65536,
-                        maximum: 256
-                    });
-                    var b = new Uint8Array(o),
-                        y = new Uint16Array(o),
-                        m = new Int16Array(o),
-                        _ = new Uint32Array(o),
-                        v = new Int32Array(o),
-                        w = new Float32Array(o),
-                        A = new Float64Array(o),
-                        S = {
-                            "f64-rem": function(e, t) {
-                                return e % t
-                            },
-                            "debugger": function() {
-                                debugger
-                            }
-                        };
-                    for (var E in S) S.hasOwnProperty(E) && (a[E] = S[E]);
-                    a.memory = a.memory, a.table = new WebAssembly.Table({
-                        initial: 13,
-                        maximum: 13,
-                        element: "anyfunc"
-                    }), a.STACKTOP = s, a.STACK_MAX = c, a.tempDoublePtr = 67824, a.DYNAMICTOP_PTR = g, a.table = a.table;
-                    var T = new WebAssembly.Instance(e.wasmBinary, {
-                        global: {
-                            NaN: NaN,
-                            Infinity: 1 / 0
-                        },
-                        env: a,
-                        asm2wasm: u
-                    }).exports;
-                    e.wasmExports = T;
-                    var M, P = T.run,
-                        C = T.get_int,
-                        k = T.get_string;
-
-                    function O(e, t, n) {
-                        for (var r = 0; r < n; ++r) b[e + r] = t[r]
-                    }
-
-                    function D(e) {
-                        for (var t = 0;
-                            "" != String.fromCharCode(b[e + t]);) t++;
-                        return t
-                    }
-
-
-                    function x(e) {
-                        for (var t = [];
-                            "" != String.fromCharCode(b[e]);) t.push(String.fromCharCode(b[e++]));
-                        return t.join("")
-                    }
-                    var I = T.malloc,
-                        U = T.free,
-                        F = T.tcc_new,
-                        W = T.tcc_set_options,
-                        L = T.tcc_compile_string,
-                        j = T.tcc_relocate,
-                        q = T.tcc_get_symbol,
-                        B = T.tcc_run,
-                        G = T.tove_new,
-                        R = T.tove_get_string;
-                    return {
-                        compile: function(e) {
-                            var t = function(e) {
-                                var t = D(e) + 1,
-                                    n = I(t);
-                                return O(n, e, t), n
-                            }(function(e) {
-                                return e.split("").map(function(e) {
-                                    return e.charCodeAt(0)
-                                })
-                            }(e));
-                            L(M, t), U(t);
-                            var n = j(M);
-                            return -1 == n && console.error(k(R(G()))), n
-                        },
-                        run: function(e) {
-                            var t = function(e) {
-                                var t = D(e) + 1,
-                                    n = I(t);
-                                return O(n, e, t), n
-                            }(function(e) {
-                                return e.split("").map(function(e) {
-                                    return e.charCodeAt(0)
-                                })
-                            }(e));
-                            ! function(e, t) {
-                                var n = q(e, t);
-                                return -1 == n && console.error("Could not find symbol"), P(n, 0)
-                            }(M, t)
-                        },
-                        get_string: function() {
-                            return k(R(G()))
-                        },
-                        set_stdout: T.set_stdout,
-                        set_stderr: T.set_stderr,
-                        tcc_new: function() {
-                            M = F()
-                        },
-                        init: function() {
-                            ! function() {
-                                M = F(), W(M, "-nostdlib")
-                            }()
-                        }
-                    }
-                }(e.wasmBinary, {
-                    global: {
-                        NaN: NaN,
-                        Infinity: 1 / 0
-                    },
-                    env: b,
-                    asm2wasm: u
-                });
-                return e.onRuntimeInitialized(), t(r), r
-            }).then(function(t) {
-                r = t, e.onDone && e.onDone(r)
-            }).catch(function(t) {
-                (e.onAbort || function(e) {
-                    throw e
-                })(t)
-            })
-        };
-        e.exports = r, r.NAME = "TCC", r.FUNCTION_TABLE = h, r.WASM_INITIALIZED = g, r.wasm = f, r.preRun = [], r.postRun = [], r.preRun.push = r.preRun.unshift = function() {
-            throw "cannot add preRun event, the runtime is already running"
-        }, r.postRun.push = r.postRun.unshift = function() {
-            throw "cannot add postRun event, the runtime is already running"
-        }
-    }])
+var u = new XMLHttpRequest;
+u.open("GET", memoryInitializer, true);
+u.responseType = "arraybuffer";
+u.onload = function() {
+q(new WebAssembly.Module(u.response))
+};
+u.send(null)
 }
-else {
-  TCC_WASM_MODULE = e => {throw new Error("not implemented yet")}
+}).then(function(q) {
+return WebAssembly.instantiate(q, {
+"global.Math": Math,
+env: {
+memory: Module.wasmMemory,
+table: new WebAssembly.Table({
+initial: 10,
+maximum: 10,
+element: "anyfunc"
+}),
+__memory_base: STATIC_BASE,
+__table_base: 0,
+abort: abort,
+_sbrk: function(p) {
+var q = HEAPU8.length;
+if (p > 0) {
+if (q + p > wasmMaxMem) return -1;
+var r = new ArrayBuffer(q + p);
+var s = new Uint8Array(r);
+s.set(HEAPU8);
+HEAPU8 = s;
+wasmMemory.grow(p / wasmPageSize);
+updateGlobalBuffer(wasmMemory.buffer);
+updateGlobalBufferViews(HEAPU8)
 }
-;
+return q
+},
+_open: function() {
+return -1
+},
+_close: function() {
+return -1
+},
+_read: function() {
+return -1
+},
+_write: function(p, q, r) {
+var s = "";
+for (var t = 0; t < r; t++) {
+s += String.fromCharCode(HEAPU8[q + t])
+}
+if (p == 1) {
+Module.print(s)
+} else if (p == 2) {
+Module.printErr(s)
+}
+return r
+},
+_lseek: function() {
+return -1
+},
+___errno_location: function() {
+return STATICTOP
+},
+_exit: function() {},
+__exit: function() {},
+_getenv: function() {
+return 0
+},
+_time: function() {
+return Date.now() / 1e3 | 0
+}
+}
+})
+}).then(function(q) {
+receiveInstance(q);
+return TCC
+});
+return WasmPromise
+}
+return {init:init}
+})();
+
+    
