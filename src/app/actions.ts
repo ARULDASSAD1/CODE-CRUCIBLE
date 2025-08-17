@@ -147,12 +147,6 @@ export async function getRound2Snippets(): Promise<Round2Snippet[]> {
     }
 }
 
-// In the participant view, we only need one snippet at a time.
-export async function getRound2Snippet(): Promise<Round2Snippet | null> {
-    const snippets = await getRound2Snippets();
-    return snippets[0] || null;
-}
-
 export async function saveRound2Snippet(snippet: Omit<Round2Snippet, 'id'>): Promise<void> {
     const snippets = await getRound2Snippets();
     const newSnippet: Round2Snippet = {
@@ -184,6 +178,11 @@ export type Participant = {
         answers: { questionId: string, answer: string }[];
         submittedAt: string; // ISO string
     };
+    round2?: {
+        score: number;
+        submissions: { snippetId: string, code: string, passed: boolean }[];
+        submittedAt: string; // ISO string
+    };
     disqualified?: boolean;
 };
 
@@ -197,7 +196,7 @@ export async function getParticipants(): Promise<Participant[]> {
     }
 }
 
-export async function saveParticipant(participantData: Omit<Participant, 'id' | 'round1' | 'disqualified'>): Promise<Participant> {
+export async function saveParticipant(participantData: Omit<Participant, 'id' | 'round1' | 'round2' | 'disqualified'>): Promise<Participant> {
     const participants = await getParticipants();
     const newParticipant: Participant = {
         id: new Date().toISOString() + Math.random(), // Simple unique ID
@@ -277,7 +276,7 @@ export async function submitRound1Answers(participantId: string, answers: { ques
     return { score };
 }
 
-// ============= ROUND 2: TEST RUNNER =============
+// ============= ROUND 2: TEST RUNNER & SUBMISSION =============
 
 export type TestCaseResult = {
     input: string;
@@ -315,4 +314,55 @@ export async function runRound2Tests(userCode: string, snippetId: string): Promi
     const privateResults = privateTestResults.map(res => ({ passed: res.passed }));
 
     return { publicResults, privateResults };
+}
+
+type Round2Submission = {
+    snippetId: string;
+    code: string;
+}
+
+export async function submitRound2(participantId: string, submissions: Round2Submission[]) {
+    const allSnippets = await getRound2Snippets();
+    let score = 0;
+    const detailedSubmissions: Participant['round2']['submissions'] = [];
+
+    for (const submission of submissions) {
+        const snippet = allSnippets.find(s => s.id === submission.snippetId);
+        if (!snippet) continue;
+
+        const allTestCases = [...snippet.publicTestCases, ...snippet.privateTestCases];
+        let allPassed = true;
+
+        for (const testCase of allTestCases) {
+            const { output: actualOutputRaw } = await compileAndRunCode(submission.code, testCase.input);
+            const actualOutput = normalizeOutput(actualOutputRaw);
+            const expectedOutput = normalizeOutput(testCase.expectedOutput);
+            if (actualOutput !== expectedOutput) {
+                allPassed = false;
+                break; 
+            }
+        }
+        
+        detailedSubmissions.push({ ...submission, passed: allPassed });
+
+        if (allPassed) {
+            score += 10; // 10 points for each correctly solved snippet
+        }
+    }
+
+    const participants = await getParticipants();
+    const participantIndex = participants.findIndex(p => p.id === participantId);
+
+    if (participantIndex === -1) {
+        throw new Error("Participant not found");
+    }
+
+    participants[participantIndex].round2 = {
+        score,
+        submissions: detailedSubmissions,
+        submittedAt: new Date().toISOString()
+    };
+
+    await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
+    return { score };
 }
