@@ -123,26 +123,37 @@ export default function ParticipantRound3() {
     
     useEffect(() => {
         const participantId = sessionStorage.getItem('participantId');
-        if (participantId) {
-             getParticipant(participantId).then(p => {
-                setParticipant(p);
-                 if (p?.round3) {
-                    toast({
-                        title: "Already Submitted",
-                        description: "You have already completed Round 3.",
-                        variant: "destructive"
-                    });
-                    router.replace('/participant');
-                    return;
-                }
-            });
-        } else {
+        if (!participantId) {
             router.replace('/participant/login');
             return;
         }
 
-        async function fetchProblems() {
+        async function fetchInitialData() {
             try {
+                 const p = await getParticipant(participantId);
+                setParticipant(p);
+
+                // Eligibility checks
+                 if (!p) {
+                    toast({ title: "Error", description: "Could not find participant details.", variant: "destructive" });
+                    router.replace('/participant/login');
+                    return;
+                }
+                if (p.round3) {
+                    toast({ title: "Already Submitted", description: "You have already completed Round 3.", variant: "destructive" });
+                    router.replace('/participant');
+                    return;
+                }
+                const isRound2Completed = !!p.round2;
+                const isRound2Passed = isRound2Completed && p.round2!.score > 0 && (p.round2!.submissions.length > 0 && (p.round2!.score / (p.round2!.submissions.length * 4)) * 100) >= 50;
+
+                if (!isRound2Completed || !(isRound2Passed || p.advancedToRound3)) {
+                     toast({ title: "Round Locked", description: "You have not qualified for Round 3.", variant: "destructive" });
+                     router.replace('/participant');
+                     return;
+                }
+
+
                 const [fetchedProblems, instructionsData, status] = await Promise.all([
                     getRound3Problems(),
                     getInstructions(),
@@ -169,7 +180,7 @@ export default function ParticipantRound3() {
                 setIsLoading(false);
             }
         }
-        fetchProblems();
+        fetchInitialData();
 
     }, [router, toast]);
     

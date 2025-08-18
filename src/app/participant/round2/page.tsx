@@ -120,26 +120,35 @@ export default function ParticipantRound2() {
 
     useEffect(() => {
         const participantId = sessionStorage.getItem('participantId');
-        if (participantId) {
-            getParticipant(participantId).then(p => {
-                setParticipant(p);
-                 if (p?.round2) {
-                    toast({
-                        title: "Already Submitted",
-                        description: "You have already completed Round 2.",
-                        variant: "destructive"
-                    });
-                    router.replace('/participant');
-                    return;
-                }
-            });
-        } else {
+        if (!participantId) {
             router.replace('/participant/login');
             return;
         }
 
         async function fetchInitialData() {
             try {
+                const p = await getParticipant(participantId);
+                setParticipant(p);
+
+                // Eligibility checks
+                if (!p) {
+                    toast({ title: "Error", description: "Could not find participant details.", variant: "destructive" });
+                    router.replace('/participant/login');
+                    return;
+                }
+                if (p.round2) {
+                    toast({ title: "Already Submitted", description: "You have already completed Round 2.", variant: "destructive" });
+                    router.replace('/participant');
+                    return;
+                }
+                const isRound1Passed = p.round1 && (p.round1.score / 20 * 100) >= 60;
+                if (!isRound1Passed) {
+                     toast({ title: "Round Locked", description: "You have not qualified for Round 2.", variant: "destructive" });
+                     router.replace('/participant');
+                     return;
+                }
+
+
                 const [fetchedSnippets, instructionsData, status] = await Promise.all([
                     getRound2Snippets(),
                     getInstructions(),

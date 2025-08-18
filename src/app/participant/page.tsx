@@ -46,7 +46,7 @@ export default function ParticipantPortal() {
 
   const isRound2Unlocked = isRound1Completed && isRound1Passed;
   const isRound2Completed = !!participant?.round2;
-  const isRound2Passed = isRound2Completed && participant.round2!.score > 0 && (participant.round2!.score / (participant.round2!.submissions.length * 2)) >= 0.5; // Placeholder logic for total score
+  const isRound2Passed = isRound2Completed && participant.round2!.score > 0 && (participant.round2!.submissions.length > 0 && (participant.round2!.score / (participant.round2!.submissions.length * 4)) * 100) >= 50;
 
   const isRound3Unlocked = isRound2Completed && (isRound2Passed || !!participant?.advancedToRound3);
 
@@ -56,6 +56,27 @@ export default function ParticipantPortal() {
             <SiteHeader />
             <main className="flex-1 flex items-center justify-center">
                 <Loader2 className="animate-spin" size={48} />
+            </main>
+        </div>
+    )
+  }
+  
+  if (participant?.disqualified) {
+    return (
+       <div className="flex flex-col min-h-screen">
+            <SiteHeader />
+            <main className="flex-1 flex items-center justify-center container mx-auto px-4 py-8">
+                <Card className="w-full max-w-md text-center">
+                    <CardHeader>
+                        <CardTitle className="text-destructive">Disqualified</CardTitle>
+                        <CardDescription>You have been disqualified from the event. Please contact an event organizer for more information.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <Button variant="outline" onClick={handleLogout}>
+                            <LogOut /> Logout
+                        </Button>
+                    </CardContent>
+                </Card>
             </main>
         </div>
     )
@@ -96,13 +117,16 @@ export default function ParticipantPortal() {
                 <CardDescription>Answer multiple-choice questions.</CardDescription>
               </CardHeader>
               <CardContent>
-                <Link href="/participant/round1" passHref>
-                  <Button className="w-full" disabled={isRound1Completed}>
-                    {isRound1Completed ? "Completed" : "Start Round 1"}
-                    </Button>
-                </Link>
+                {isRound1Completed ? (
+                   <Button className="w-full" disabled>Completed</Button>
+                ) : (
+                  <Link href="/participant/round1" passHref>
+                    <Button className="w-full">Start Round 1</Button>
+                  </Link>
+                )}
               </CardContent>
             </Card>
+
             <Card className={!isRound2Unlocked ? "bg-muted/50" : ""}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -111,14 +135,19 @@ export default function ParticipantPortal() {
                 <CardDescription>Find and fix bugs in the given code.</CardDescription>
               </CardHeader>
               <CardContent>
-                <Link href="/participant/round2" passHref>
-                  <Button className="w-full" disabled={!isRound2Unlocked || isRound2Completed}>
-                    {!isRound2Unlocked && <Lock className='mr-2' />}
-                    {isRound2Completed ? "Completed" : isRound2Unlocked ? "Start Round 2" : "Locked"}
-                  </Button>
-                </Link>
+                 {isRound2Unlocked && !isRound2Completed ? (
+                    <Link href="/participant/round2" passHref>
+                        <Button className="w-full">Start Round 2</Button>
+                    </Link>
+                 ) : (
+                    <Button className="w-full" disabled>
+                        {!isRound2Unlocked && <Lock className='mr-2' />}
+                        {isRound2Completed ? "Completed" : "Locked"}
+                    </Button>
+                 )}
               </CardContent>
             </Card>
+
             <Card className={!isRound3Unlocked ? "bg-muted/50" : ""}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -127,12 +156,16 @@ export default function ParticipantPortal() {
                 <CardDescription>Solve the final programming challenge.</CardDescription>
               </CardHeader>
               <CardContent>
-                <Link href="/participant/round3" passHref>
-                  <Button className="w-full" disabled={!isRound3Unlocked || !!participant?.round3}>
-                     {!isRound3Unlocked && <Lock className='mr-2' />}
-                     {!!participant?.round3 ? "Completed" : isRound3Unlocked ? "Start Round 3" : "Locked"}
-                  </Button>
-                </Link>
+                {isRound3Unlocked && !participant?.round3 ? (
+                    <Link href="/participant/round3" passHref>
+                        <Button className="w-full">Start Round 3</Button>
+                    </Link>
+                ) : (
+                    <Button className="w-full" disabled>
+                        {!isRound3Unlocked && <Lock className='mr-2' />}
+                        {!!participant?.round3 ? "Completed" : "Locked"}
+                    </Button>
+                )}
               </CardContent>
             </Card>
           </div>
