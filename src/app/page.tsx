@@ -1,4 +1,6 @@
+
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight, BookOpen, Crown } from 'lucide-react';
@@ -17,6 +19,16 @@ export default async function Home() {
           <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
           <div className="absolute top-0 z-[-2] h-screen w-screen bg-background bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(217,35,35,0.3),rgba(255,255,255,0))]"></div>
           
+          <div className="flex justify-center mb-4">
+            <Image
+                src="/croppedsj.gif"
+                alt="Event Animation"
+                width={150}
+                height={150}
+                unoptimized // Keep GIF animation
+            />
+          </div>
+
           <h2 className="text-2xl md:text-3xl font-semibold text-accent tracking-wider">
             Colloquiums - 2k25
           </h2>
@@ -68,6 +80,24 @@ export default async function Home() {
                     </Card>
                 </div>
             </div>
+
+            <div className="max-w-6xl mx-auto mt-12">
+                 <Card className="overflow-hidden">
+                    <CardHeader>
+                        <CardTitle className="font-headline text-3xl">Event Poster</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Image
+                            src="/poster.jpeg"
+                            alt="Event Poster"
+                            width={1200}
+                            height={800}
+                            className="w-full h-auto rounded-lg shadow-lg"
+                        />
+                    </CardContent>
+                </Card>
+            </div>
+
         </section>
       </main>
 
