@@ -17,11 +17,14 @@ export default async function Home() {
           <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
           <div className="absolute top-0 z-[-2] h-screen w-screen bg-background bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(217,35,35,0.3),rgba(255,255,255,0))]"></div>
           
-          <h1 className="font-headline text-5xl md:text-7xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400 bg-opacity-50">
+          <h2 className="text-2xl md:text-3xl font-semibold text-accent tracking-wider">
+            Colloquim - 2k25
+          </h2>
+          <h1 className="font-headline text-5xl md:text-7xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400 bg-opacity-50 mt-2">
             Code Crucible
           </h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            The ultimate offline platform for competitive programming and debugging.
+            A Technical Event for Competitive Programming and Debugging.
           </p>
           <div className="mt-8 flex justify-center gap-4">
             <Button asChild size="lg" className="text-lg py-7 px-8 font-semibold transition-transform transform hover:scale-105">

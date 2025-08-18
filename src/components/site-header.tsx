@@ -1,17 +1,31 @@
-import { Icons } from "@/components/icons";
 import Link from "next/link";
+import Image from "next/image";
 
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
-        <div className="flex gap-6 md:gap-10">
+      <div className="container flex h-20 items-center justify-between">
+        <div className="flex items-center gap-4 md:gap-6">
           <Link href="/" className="flex items-center space-x-2">
-            <Icons.logo className="h-7 w-7 text-primary" />
+             <Image 
+                src="https://media.collegedekho.com/media/img/institute/logo/ICRNfiDW_400x400.png"
+                alt="VMKVEC Logo"
+                width={50}
+                height={50}
+                className="rounded-full"
+             />
             <span className="inline-block font-bold font-headline text-xl tracking-tighter">
               Code Crucible
             </span>
           </Link>
+        </div>
+        <div className="flex items-center">
+            <Image 
+                src="https://apiserver.vmkvec.ac.in/AppUpload/Images/Company/Large/vmk-logo.webp"
+                alt="Vinayaka Missions Logo"
+                width={120}
+                height={50}
+            />
         </div>
       </div>
     </header>

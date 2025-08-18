@@ -108,5 +108,13 @@
     "college": "UNIV",
     "year": "2",
     "dept": "CSE"
+  },
+  {
+    "id": "2025-08-18T05:23:46.176Z0.009268863472247535",
+    "name": "RAMALINGAM B",
+    "teamName": "b",
+    "college": "omalur college",
+    "year": "2",
+    "dept": "cse"
   }
 ]
