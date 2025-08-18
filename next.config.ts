@@ -17,18 +17,6 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: 'apiserver.vmkvec.ac.in',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'media.collegedekho.com',
-        port: '',
-        pathname: '/**',
-      },
     ],
   },
 };
