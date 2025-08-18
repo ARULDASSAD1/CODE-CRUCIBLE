@@ -5,6 +5,9 @@ import { Toaster } from '@/components/ui/toaster';
 export const metadata: Metadata = {
   title: 'Code Crucible',
   description: 'A platform for competitive programming and debugging events.',
+  icons: {
+    icon: '/logo2.avif',
+  },
 };
 
 export default function RootLayout({
