@@ -19,20 +19,23 @@ export function SiteHeader({ inRound }: { inRound?: boolean }) {
             </span>
           </Link>
         </div>
-        <div className="flex items-center">
-           {inRound ? (
+        
+        {inRound && (
+            <div className="hidden md:flex flex-1 justify-center">
                  <h2 className="font-headline text-xl md:text-2xl font-bold tracking-tight text-center">
                     Department of CSE - colloquiums - 2K25
                 </h2>
-            ) : (
-                <Image 
-                    src="/logo1-modified.png"
-                    alt="Vinayaka Missions Logo"
-                    width={160}
-                    height={90}
-                    style={{ height: 'auto' }}
-                />
-            )}
+            </div>
+        )}
+
+        <div className="flex items-center">
+           <Image 
+                src="/logo1-modified.png"
+                alt="Vinayaka Missions Logo"
+                width={160}
+                height={90}
+                style={{ height: 'auto' }}
+            />
         </div>
       </div>
     </header>
