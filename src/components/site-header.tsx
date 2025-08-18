@@ -21,10 +21,10 @@ export function SiteHeader() {
         </div>
         <div className="flex items-center">
             <Image 
-                src="/logo1.webp"
+                src="/logo1-modified.png"
                 alt="Vinayaka Missions Logo"
-                width={120}
-                height={50}
+                width={160}
+                height={90}
             />
         </div>
       </div>

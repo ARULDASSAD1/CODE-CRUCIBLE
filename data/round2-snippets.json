@@ -1,2 +1,69 @@
-
-[]
+[
+  {
+    "title": "Sum digits",
+    "code": "#include <stdio.h>\n\nint main() {\n    int n;\n    scanf(\"%d\", &n);\n    int sum; // BUG: uninitialized, should be 0\n    while(n > 0) {\n        sum = n % 10;   // BUG: overwrites instead of adding\n        n /= 10;\n    }\n    printf(\"%d\\n\", sum);\n    return 0;\n}\n",
+    "publicTestCases": [
+      {
+        "input": "123",
+        "expectedOutput": "6"
+      },
+      {
+        "input": "908",
+        "expectedOutput": "17"
+      }
+    ],
+    "privateTestCases": [
+      {
+        "input": "10005",
+        "expectedOutput": "6"
+      },
+      {
+        "input": "9999",
+        "expectedOutput": "36"
+      }
+    ],
+    "id": "2025-08-17T18:18:03.684Z0.330381318592206"
+  },
+  {
+    "title": "PRIME CHECK",
+    "code": "#include <stdio.h>\n\nint main() {\n    int n;\n    scanf(\"%d\", &n);\n    int flag = 0;\n    for(int i = 2; i <= n; i++) {   // BUG: should only go up to sqrt(n)\n        if(n % i == 0) {\n            flag = 1;\n        }\n    }\n    if(flag == 0)\n        printf(\"Prime\\n\");\n    else\n        printf(\"Not Prime\\n\");\n    return 0;\n}\n",
+    "publicTestCases": [
+      {
+        "input": "7",
+        "expectedOutput": "Prime"
+      },
+      {
+        "input": "10",
+        "expectedOutput": "Not Prime"
+      }
+    ],
+    "privateTestCases": [
+      {
+        "input": "1",
+        "expectedOutput": "Not Prime"
+      },
+      {
+        "input": "97",
+        "expectedOutput": "Prime"
+      }
+    ],
+    "id": "2025-08-17T18:22:22.243Z0.05971716156234197"
+  },
+  {
+    "title": "Reverse integer",
+    "code": "#include <stdio.h>\n\nint main() {\n    int n, rev = 0;\n    scanf(\"%d\", &n);\n    while(n > 0) {\n        rev = rev * 10 + n;   // BUG: should use n % 10\n        n /= 10;\n    }\n    printf(\"%d\\n\", rev);\n    return 0;\n}",
+    "publicTestCases": [
+      {
+        "input": "123",
+        "expectedOutput": "321"
+      }
+    ],
+    "privateTestCases": [
+      {
+        "input": "9876",
+        "expectedOutput": "6789"
+      }
+    ],
+    "id": "2025-08-18T05:12:01.380Z0.5572777999297056"
+  }
+]
