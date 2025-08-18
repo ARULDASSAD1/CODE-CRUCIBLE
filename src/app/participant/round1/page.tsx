@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { getMcqQuestions, McqQuestion, Participant, submitRound1Answers, getInstructions, getEventStatus, EventStatus } from '@/app/actions';
+import { getMcqQuestions, McqQuestion, Participant, submitRound1Answers, getInstructions, getEventStatus, EventStatus, getParticipant } from '@/app/actions';
 import { Loader2, TimerIcon, ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 type Answer = {
     questionId: string;
@@ -70,27 +71,31 @@ export default function ParticipantRound1() {
     const [roundStarted, setRoundStarted] = useState(false);
     const [roundInstructions, setRoundInstructions] = useState('');
     const [eventStatus, setEventStatus] = useState<EventStatus | null>(null);
+    const [showResultDialog, setShowResultDialog] = useState(false);
+    const [resultData, setResultData] = useState({ score: 0, total: 0, passed: false });
+
     const { toast } = useToast();
     const router = useRouter();
 
     const handleSubmitRef = useRef<() => void>();
 
     useEffect(() => {
-        const participantDetails = localStorage.getItem('participantDetails');
-        if (participantDetails) {
-            const parsedDetails = JSON.parse(participantDetails);
-            setParticipant(parsedDetails);
-            if (parsedDetails.round1) {
-                 toast({
-                    title: "Already Submitted",
-                    description: "You have already completed Round 1.",
-                    variant: "destructive"
-                });
-                router.replace('/participant');
-                return;
-            }
+        const participantId = sessionStorage.getItem('participantId');
+        if (participantId) {
+            getParticipant(participantId).then(p => {
+                setParticipant(p);
+                if (p?.round1) {
+                    toast({
+                        title: "Already Submitted",
+                        description: "You have already completed Round 1.",
+                        variant: "destructive"
+                    });
+                    router.replace('/participant');
+                    return;
+                }
+            });
         } else {
-            router.replace('/participant/register');
+            router.replace('/participant/login');
             return;
         }
 
@@ -131,28 +136,9 @@ export default function ParticipantRound1() {
         const timeTaken = ROUND_DURATION_SECONDS - timeLeft;
 
         try {
-            const { score } = await submitRound1Answers(participant.id, answers, timeTaken);
-            
-            const updatedParticipant: Participant = {
-                ...participant, 
-                round1: { 
-                    score, 
-                    answers, 
-                    submittedAt: new Date().toISOString(),
-                    timeTakenSeconds: timeTaken,
-                }
-            };
-            localStorage.setItem('participantDetails', JSON.stringify(updatedParticipant));
-            
-            toast({
-                title: "Round 1 Submitted!",
-                description: `You scored ${score} out of ${questions.length}.`,
-            });
-
-            setTimeout(() => {
-                router.push('/participant');
-            }, 1500);
-
+            const { score, total, passed } = await submitRound1Answers(participant.id, answers, timeTaken);
+            setResultData({ score, total, passed });
+            setShowResultDialog(true);
         } catch (error) {
              toast({
                 title: "Submission Failed",
@@ -171,10 +157,6 @@ export default function ParticipantRound1() {
                 setTimeLeft(prevTime => {
                     if (prevTime <= 1) {
                         clearInterval(timer);
-                        toast({
-                            title: "Time's Up!",
-                            description: "Auto-submitting your answers.",
-                        });
                         handleSubmitRef.current?.();
                         return 0;
                     }
@@ -213,7 +195,7 @@ export default function ParticipantRound1() {
                     <InstructionsScreen instructions={roundInstructions} onStart={() => setRoundStarted(true)} isRoundEnabled={eventStatus?.round1 === 'enabled'} />
                 ) : (
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="sticky top-[80px] bg-background z-10 border-b">
                             <div className="flex justify-between items-center">
                                 <div>
                                     <CardTitle>Round 1: Multiple Choice Questions</CardTitle>
@@ -227,9 +209,9 @@ export default function ParticipantRound1() {
                         </CardHeader>
                         <CardContent>
                             {questions.length === 0 ? (
-                                <p>The admin has not added any questions for this round yet. Please wait.</p>
+                                <p className="pt-6">The admin has not added any questions for this round yet. Please wait.</p>
                             ) : (
-                                <div className="space-y-8">
+                                <div className="space-y-8 pt-6">
                                     {questions.map((q, index) => (
                                         <div key={q.id}>
                                             <p className="font-semibold mb-4">{index + 1}. {q.question}</p>
@@ -257,6 +239,24 @@ export default function ParticipantRound1() {
                     </Card>
                 )}
             </main>
+             <AlertDialog open={showResultDialog} onOpenChange={setShowResultDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{resultData.passed ? "Congratulations!" : "Better Luck Next Time"}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            You scored {resultData.score} out of {resultData.total}.
+                            {resultData.passed
+                                ? " You have qualified for Round 2!"
+                                : " You have not met the 60% requirement to advance to the next round."}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction onClick={() => router.push('/participant')}>
+                            Back to Portal
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

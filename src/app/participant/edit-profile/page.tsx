@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -10,25 +10,31 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
-import { updateParticipant, Participant } from '@/app/actions';
+import { updateParticipant, Participant, getParticipant } from '@/app/actions';
 import Link from 'next/link';
 
 export default function EditProfile() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { toast } = useToast();
     const [participant, setParticipant] = useState<Participant | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isFetching, setIsFetching] = useState(true);
 
     useEffect(() => {
-        const participantDetails = localStorage.getItem('participantDetails');
-        if (participantDetails) {
-            setParticipant(JSON.parse(participantDetails));
+        const participantId = sessionStorage.getItem('participantId');
+        if (participantId) {
+            getParticipant(participantId).then(p => {
+                setParticipant(p);
+                 if (!p) {
+                    toast({ title: "Error", description: "Could not find participant details.", variant: "destructive" });
+                    router.replace('/participant/login');
+                }
+            }).finally(() => setIsFetching(false));
         } else {
-            router.replace('/participant/register');
+            router.replace('/participant/login');
         }
-        setIsFetching(false);
-    }, [router]);
+    }, [router, toast]);
 
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -37,7 +43,6 @@ export default function EditProfile() {
 
         try {
             const updated = await updateParticipant(participant);
-            localStorage.setItem('participantDetails', JSON.stringify(updated));
             
             toast({
                 title: "Profile Updated",

@@ -10,6 +10,7 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 
 export default function EventControl() {
     const [status, setStatus] = useState<EventStatus | null>(null);
@@ -33,7 +34,7 @@ export default function EventControl() {
         fetchStatus();
     }, []);
 
-    const handleStatusChange = async (round: keyof EventStatus, enabled: boolean) => {
+    const handleStatusChange = (round: keyof EventStatus, enabled: boolean) => {
         if (!status) return;
 
         const newStatus: EventStatus = {
@@ -41,11 +42,24 @@ export default function EventControl() {
             [round]: enabled ? 'enabled' : 'disabled',
         };
         setStatus(newStatus);
+    };
+
+    const handleMaxRegChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!status) return;
+        const value = parseInt(e.target.value, 10);
+        setStatus({
+            ...status,
+            maxRegistrations: isNaN(value) ? 0 : value,
+        });
+    }
+
+    const handleSave = async () => {
+        if (!status) return;
         
         setIsSaving(true);
         try {
-            await updateEventStatus(newStatus);
-            toast({ title: "Success", description: `${round.charAt(0).toUpperCase() + round.slice(1)} status updated.` });
+            await updateEventStatus(status);
+            toast({ title: "Success", description: `Event status updated.` });
         } catch {
             toast({ title: "Error", description: "Failed to update event status.", variant: "destructive" });
             // Revert optimistic update
@@ -73,7 +87,7 @@ export default function EventControl() {
                 <Card className="max-w-2xl mx-auto">
                     <CardHeader>
                         <CardTitle>Event Control Center</CardTitle>
-                        <CardDescription>Use the switches below to enable or disable each round for all participants in real-time.</CardDescription>
+                        <CardDescription>Manage event settings in real-time. Click "Save Changes" to apply.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {isLoading || !status ? (
@@ -82,6 +96,19 @@ export default function EventControl() {
                             </div>
                         ) : (
                             <div className="space-y-6">
+                                <div className="flex items-center justify-between p-4 border rounded-lg">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="max-registrations" className="text-lg font-medium">Maximum Registrations</Label>
+                                        <p className="text-sm text-muted-foreground">Set the maximum number of participants. Use 0 for unlimited.</p>
+                                    </div>
+                                    <Input
+                                        id="max-registrations"
+                                        type="number"
+                                        value={status.maxRegistrations}
+                                        onChange={handleMaxRegChange}
+                                        className="w-24"
+                                    />
+                                </div>
                                 <div className="flex items-center justify-between p-4 border rounded-lg">
                                     <div className="space-y-1">
                                         <Label htmlFor="round1-switch" className="text-lg font-medium">Round 1: MCQs</Label>
@@ -117,6 +144,12 @@ export default function EventControl() {
                                         onCheckedChange={(checked) => handleStatusChange('round3', checked)}
                                         disabled={isSaving}
                                     />
+                                </div>
+                                 <div className="flex justify-end">
+                                    <Button onClick={handleSave} disabled={isSaving}>
+                                        {isSaving && <Loader2 className="animate-spin mr-2" />}
+                                        {isSaving ? 'Saving...' : 'Save Changes'}
+                                    </Button>
                                 </div>
                             </div>
                         )}

@@ -18,7 +18,7 @@ export default async function Home() {
           <div className="absolute top-0 z-[-2] h-screen w-screen bg-background bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(217,35,35,0.3),rgba(255,255,255,0))]"></div>
           
           <h2 className="text-2xl md:text-3xl font-semibold text-accent tracking-wider">
-            Colloquim - 2k25
+            Colloquiums - 2k25
           </h2>
           <h1 className="font-headline text-5xl md:text-7xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-400 bg-opacity-50 mt-2">
             Code Crucible
@@ -28,7 +28,7 @@ export default async function Home() {
           </p>
           <div className="mt-8 flex justify-center gap-4">
             <Button asChild size="lg" className="text-lg py-7 px-8 font-semibold transition-transform transform hover:scale-105">
-                <Link href="/participant/register">
+                <Link href="/participant/login">
                   Enter Competition <ArrowRight className="ml-2" />
                 </Link>
             </Button>

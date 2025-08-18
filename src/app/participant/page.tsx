@@ -7,28 +7,48 @@ import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ListChecks, Bug, Code, Loader2, LogOut, User } from "lucide-react";
+import { ListChecks, Bug, Code, Loader2, LogOut, User, Lock } from "lucide-react";
+import { getParticipant, Participant } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ParticipantPortal() {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [participantName, setParticipantName] = useState('');
+  const [participant, setParticipant] = useState<Participant | null>(null);
 
   useEffect(() => {
-    const participantDetails = localStorage.getItem('participantDetails');
-    if (!participantDetails) {
-      router.replace('/participant/register');
+    const participantId = sessionStorage.getItem('participantId');
+    if (!participantId) {
+      router.replace('/participant/login');
     } else {
-      setParticipantName(JSON.parse(participantDetails).teamName);
-      setLoading(false);
+        getParticipant(participantId).then((p) => {
+            if (p) {
+                setParticipant(p);
+            } else {
+                toast({ title: "Error", description: "Could not find participant details.", variant: "destructive" });
+                sessionStorage.removeItem('participantId');
+                router.replace('/participant/login');
+            }
+        }).finally(() => {
+            setLoading(false);
+        });
     }
-  }, [router]);
+  }, [router, toast]);
 
   const handleLogout = () => {
-    localStorage.removeItem('participantDetails');
+    sessionStorage.removeItem('participantId');
     router.push('/');
   };
 
+  const isRound1Completed = !!participant?.round1;
+  const isRound1Passed = isRound1Completed && (participant.round1!.score / 20 * 100) >= 60; // Assuming 20 questions
+
+  const isRound2Unlocked = isRound1Completed && isRound1Passed;
+  const isRound2Completed = !!participant?.round2;
+  const isRound2Passed = isRound2Completed && participant.round2!.score > 0 && (participant.round2!.score / (participant.round2!.submissions.length * 2)) >= 0.5; // Placeholder logic for total score
+
+  const isRound3Unlocked = isRound2Completed && (isRound2Passed || !!participant?.advancedToRound3);
 
   if (loading) {
     return (
@@ -52,7 +72,7 @@ export default function ParticipantPortal() {
                 Participant Portal
               </h1>
               <p className="mt-3 text-lg text-muted-foreground max-w-2xl">
-                Welcome, {participantName}! Here are the rounds.
+                Welcome, {participant?.name}! Here are the rounds.
               </p>
             </div>
             <div className='flex items-center gap-2'>
@@ -77,11 +97,13 @@ export default function ParticipantPortal() {
               </CardHeader>
               <CardContent>
                 <Link href="/participant/round1" passHref>
-                  <Button className="w-full">Start Round 1</Button>
+                  <Button className="w-full" disabled={isRound1Completed}>
+                    {isRound1Completed ? "Completed" : "Start Round 1"}
+                    </Button>
                 </Link>
               </CardContent>
             </Card>
-            <Card>
+            <Card className={!isRound2Unlocked ? "bg-muted/50" : ""}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Bug /> Round 2: Debugging
@@ -90,11 +112,14 @@ export default function ParticipantPortal() {
               </CardHeader>
               <CardContent>
                 <Link href="/participant/round2" passHref>
-                  <Button className="w-full">Start Round 2</Button>
+                  <Button className="w-full" disabled={!isRound2Unlocked || isRound2Completed}>
+                    {!isRound2Unlocked && <Lock className='mr-2' />}
+                    {isRound2Completed ? "Completed" : isRound2Unlocked ? "Start Round 2" : "Locked"}
+                  </Button>
                 </Link>
               </CardContent>
             </Card>
-            <Card>
+            <Card className={!isRound3Unlocked ? "bg-muted/50" : ""}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Code /> Round 3: Coding
@@ -103,7 +128,10 @@ export default function ParticipantPortal() {
               </CardHeader>
               <CardContent>
                 <Link href="/participant/round3" passHref>
-                  <Button className="w-full">Start Round 3</Button>
+                  <Button className="w-full" disabled={!isRound3Unlocked || !!participant?.round3}>
+                     {!isRound3Unlocked && <Lock className='mr-2' />}
+                     {!!participant?.round3 ? "Completed" : isRound3Unlocked ? "Start Round 3" : "Locked"}
+                  </Button>
                 </Link>
               </CardContent>
             </Card>

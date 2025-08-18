@@ -31,7 +31,7 @@ import { Separator } from '@/components/ui/separator';
 
 
 const testCaseSchema = z.object({
-  input: z.string().min(1, "Input cannot be empty"),
+  input: z.string(), // Allow empty
   expectedOutput: z.string().min(1, "Expected output cannot be empty"),
 });
 

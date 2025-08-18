@@ -1,5 +1,6 @@
 {
   "round1": "enabled",
   "round2": "disabled",
-  "round3": "disabled"
+  "round3": "disabled",
+  "maxRegistrations": 0
 }

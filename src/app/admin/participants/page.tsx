@@ -6,8 +6,8 @@ import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { getParticipants, Participant, toggleDisqualify, deleteParticipant, deleteParticipants } from '@/app/actions';
-import { Loader2, RefreshCw, Trash2, UserX, UserCheck } from 'lucide-react';
+import { getParticipants, Participant, toggleDisqualify, deleteParticipant, deleteParticipants, advanceToRound3 } from '@/app/actions';
+import { Loader2, RefreshCw, Trash2, UserX, UserCheck, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
@@ -94,6 +94,19 @@ export default function ManageParticipants() {
         setSelectedParticipants(isAllSelected ? participants.map(p => p.id) : []);
       }
 
+      const handleAdvanceToRound3 = async (id: string) => {
+        setActioningId(id);
+        try {
+            await advanceToRound3(id);
+            await fetchParticipants();
+            toast({ title: "Success", description: "Participant has been advanced to Round 3." });
+        } catch {
+            toast({ title: "Error", description: "Failed to advance participant.", variant: "destructive" });
+        } finally {
+            setActioningId(null);
+        }
+      }
+
     return (
         <div className="flex flex-col min-h-screen">
             <SiteHeader />
@@ -158,6 +171,7 @@ export default function ManageParticipants() {
                                         <TableHead>College</TableHead>
                                         <TableHead>Round 1 Status</TableHead>
                                         <TableHead>Round 1 Score</TableHead>
+                                        <TableHead>Round 2 Score</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead className='text-right'>Actions</TableHead>
                                     </TableRow>
@@ -183,6 +197,7 @@ export default function ManageParticipants() {
                                                 )}
                                             </TableCell>
                                             <TableCell>{p.round1?.score ?? 'N/A'}</TableCell>
+                                            <TableCell>{p.round2?.score ?? 'N/A'}</TableCell>
                                             <TableCell>
                                                  {p.disqualified ? (
                                                     <Badge variant="destructive">Disqualified</Badge>
@@ -192,6 +207,17 @@ export default function ManageParticipants() {
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className='flex gap-2 justify-end'>
+                                                    {p.round2 && !p.advancedToRound3 && (!p.round3) && (
+                                                        <Button 
+                                                            size="icon" 
+                                                            variant="ghost" 
+                                                            onClick={() => handleAdvanceToRound3(p.id)}
+                                                            disabled={actioningId === p.id}
+                                                            title="Manually advance to Round 3"
+                                                        >
+                                                             {actioningId === p.id ? <Loader2 className='animate-spin' /> : <ShieldCheck />}
+                                                        </Button>
+                                                    )}
                                                     <Button 
                                                         size="icon" 
                                                         variant="ghost" 

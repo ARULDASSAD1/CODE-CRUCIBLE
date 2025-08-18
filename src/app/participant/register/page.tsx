@@ -10,49 +10,70 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
 import { saveParticipant } from '@/app/actions';
+import Link from 'next/link';
 
 export default function ParticipantRegister() {
     const router = useRouter();
     const { toast } = useToast();
-    const [name, setName] = useState('');
-    const [teamName, setTeamName] = useState('');
-    const [year, setYear] = useState('');
-    const [dept, setDept] = useState('');
-    const [college, setCollege] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        name: '',
+        teamName: '',
+        year: '',
+        dept: '',
+        college: '',
+        username: '',
+        password: '',
+        confirmPassword: '',
+    });
 
     useEffect(() => {
-        // If already registered, redirect to portal
-        if (localStorage.getItem('participantDetails')) {
+        // If already logged in, redirect to portal
+        if (sessionStorage.getItem('participantId')) {
             router.replace('/participant');
         }
     }, [router]);
 
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
+    }
+
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
-
-        if (!name || !teamName || !year || !dept || !college) {
+        
+        if (formData.password !== formData.confirmPassword) {
             toast({
-                title: "Incomplete Form",
-                description: "Please fill out all fields.",
+                title: "Passwords do not match",
+                description: "Please check your password and try again.",
                 variant: "destructive",
             });
             setIsLoading(false);
             return;
         }
 
-        const participantData = { name, teamName, year, dept, college };
         try {
-            const newParticipant = await saveParticipant(participantData);
-            localStorage.setItem('participantDetails', JSON.stringify(newParticipant));
-            
-            toast({
-                title: "Registration Successful",
-                description: `Welcome, ${teamName}!`,
-            });
+            const { confirmPassword, ...participantData } = formData;
+            const { participant, error } = await saveParticipant(participantData);
 
-            router.push('/participant');
+            if (error) {
+                toast({
+                    title: "Registration Failed",
+                    description: error,
+                    variant: "destructive",
+                });
+                setIsLoading(false);
+                return;
+            }
+            
+            if (participant) {
+                sessionStorage.setItem('participantId', participant.id);
+                toast({
+                    title: "Registration Successful",
+                    description: `Welcome, ${participant.name}!`,
+                });
+                router.push('/participant');
+            }
 
         } catch (error) {
              toast({
@@ -78,66 +99,51 @@ export default function ParticipantRegister() {
                              <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="name">Full Name</Label>
-                                    <Input
-                                        id="name"
-                                        placeholder="e.g., Ada Lovelace"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        required
-                                        disabled={isLoading}
-                                    />
+                                    <Input id="name" placeholder="e.g., Ada Lovelace" value={formData.name} onChange={handleChange} required disabled={isLoading}/>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="teamName">Team Name</Label>
-                                    <Input
-                                        id="teamName"
-                                        placeholder="e.g., The Compilers"
-                                        value={teamName}
-                                        onChange={(e) => setTeamName(e.target.value)}
-                                        required
-                                        disabled={isLoading}
-                                    />
+                                    <Input id="teamName" placeholder="e.g., The Compilers" value={formData.teamName} onChange={handleChange} required disabled={isLoading} />
                                 </div>
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="college">College Name</Label>
-                                <Input
-                                    id="college"
-                                    placeholder="e.g., Babbage University"
-                                    value={college}
-                                    onChange={(e) => setCollege(e.target.value)}
-                                    required
-                                    disabled={isLoading}
-                                />
+                                <Input id="college" placeholder="e.g., Babbage University" value={formData.college} onChange={handleChange} required disabled={isLoading} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                <div className="space-y-2">
                                     <Label htmlFor="year">Year</Label>
-                                    <Input
-                                        id="year"
-                                        placeholder="e.g., 2"
-                                        value={year}
-                                        onChange={(e) => setYear(e.target.value)}
-                                        required
-                                        disabled={isLoading}
-                                    />
+                                    <Input id="year" placeholder="e.g., 2" value={formData.year} onChange={handleChange} required disabled={isLoading} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="dept">Department</Label>
-                                    <Input
-                                        id="dept"
-                                        placeholder="e.g., CSE"
-                                        value={dept}
-                                        onChange={(e) => setDept(e.target.value)}
-                                        required
-                                        disabled={isLoading}
-                                    />
+                                    <Input id="dept" placeholder="e.g., CSE" value={formData.dept} onChange={handleChange} required disabled={isLoading} />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="username">Username</Label>
+                                <Input id="username" placeholder="Choose a unique username" value={formData.username} onChange={handleChange} required disabled={isLoading} />
+                            </div>
+                             <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="password">Password</Label>
+                                    <Input id="password" type="password" value={formData.password} onChange={handleChange} required disabled={isLoading}/>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                                    <Input id="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required disabled={isLoading} />
                                 </div>
                             </div>
                             <Button type="submit" className="w-full" disabled={isLoading}>
                                 {isLoading && <Loader2 className="animate-spin" />}
-                                {isLoading ? 'Registering...' : 'Start Competition'}
+                                {isLoading ? 'Registering...' : 'Register and Start'}
                             </Button>
+                             <p className="text-center text-sm text-muted-foreground">
+                                Already have an account?{" "}
+                                <Link href="/participant/login" className="underline hover:text-primary">
+                                    Login here
+                                </Link>
+                            </p>
                         </form>
                     </CardContent>
                 </Card>

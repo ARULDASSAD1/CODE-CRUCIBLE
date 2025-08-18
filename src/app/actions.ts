@@ -31,6 +31,7 @@ export type EventStatus = {
     round1: 'enabled' | 'disabled';
     round2: 'enabled' | 'disabled';
     round3: 'enabled' | 'disabled';
+    maxRegistrations: number;
 };
 
 export async function getEventStatus(): Promise<EventStatus> {
@@ -40,7 +41,7 @@ export async function getEventStatus(): Promise<EventStatus> {
         return JSON.parse(fileContent);
     } catch (error) {
         // Default to all disabled if the file doesn't exist
-        const defaultStatus: EventStatus = { round1: 'disabled', round2: 'disabled', round3: 'disabled' };
+        const defaultStatus: EventStatus = { round1: 'disabled', round2: 'disabled', round3: 'disabled', maxRegistrations: 0 };
         await fs.writeFile(eventStatusPath, JSON.stringify(defaultStatus, null, 2), 'utf8');
         return defaultStatus;
     }
@@ -239,6 +240,8 @@ export async function deleteRound3Problem(id: string): Promise<void> {
 export type Participant = {
     id: string;
     name: string;
+    username: string;
+    password?: string; // Should be hashed in a real app
     teamName: string;
     year: string;
     dept: string;
@@ -262,6 +265,7 @@ export type Participant = {
         timeTakenSeconds: number;
     };
     disqualified?: boolean;
+    advancedToRound3?: boolean;
 };
 
 export async function getParticipants(): Promise<Participant[]> {
@@ -274,20 +278,41 @@ export async function getParticipants(): Promise<Participant[]> {
     }
 }
 
-export async function saveParticipant(participantData: Omit<Participant, 'id' | 'round1' | 'round2' | 'round3' | 'disqualified'>): Promise<Participant> {
+export async function getParticipant(id: string): Promise<Participant | null> {
     const participants = await getParticipants();
+    const participant = participants.find(p => p.id === id);
+    if (participant) {
+        // Don't send password to client
+        delete participant.password;
+    }
+    return participant || null;
+}
+
+export async function saveParticipant(participantData: Omit<Participant, 'id'>): Promise<{participant?: Participant, error?: string}> {
+    const { maxRegistrations } = await getEventStatus();
+    const participants = await getParticipants();
+    
+    if (maxRegistrations > 0 && participants.length >= maxRegistrations) {
+        return { error: 'Registration limit has been reached.' };
+    }
+
+    if (participants.some(p => p.username === participantData.username)) {
+         return { error: 'This username is already taken.' };
+    }
+
     const newParticipant: Participant = {
         id: new Date().toISOString() + Math.random(), // Simple unique ID
-        name: participantData.name,
-        teamName: participantData.teamName,
-        college: participantData.college,
-        year: participantData.year,
-        dept: participantData.dept,
+        ...participantData
     };
     participants.push(newParticipant);
-await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
-    return newParticipant;
+    await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
+
+    // Return participant without password
+    const { password, ...participantToReturn } = newParticipant;
+
+    return { participant: participantToReturn };
 }
+
 
 export async function updateParticipant(participantData: Participant): Promise<Participant> {
     const participants = await getParticipants();
@@ -332,33 +357,33 @@ export async function toggleDisqualify(id: string): Promise<void> {
     await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
 }
 
-
-export async function submitRound1Answers(participantId: string, answers: { questionId: string, answer: string }[], timeTakenSeconds: number) {
-    const questions = await getMcqQuestions();
-    let score = 0;
-    for (const question of questions) {
-        const participantAnswer = answers.find(a => a.questionId === question.id);
-        if (participantAnswer && participantAnswer.answer === question.correctAnswer) {
-            score++;
-        }
-    }
-
+export async function advanceToRound3(id: string): Promise<void> {
     const participants = await getParticipants();
-    const participantIndex = participants.findIndex(p => p.id === participantId);
+    const participantIndex = participants.findIndex(p => p.id === id);
 
     if (participantIndex === -1) {
         throw new Error("Participant not found");
     }
 
-    participants[participantIndex].round1 = {
-        score,
-        answers,
-        submittedAt: new Date().toISOString(),
-        timeTakenSeconds,
-    };
-
+    participants[participantIndex].advancedToRound3 = true;
     await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
-    return { score };
+}
+
+// AUTHENTICATION
+export async function loginParticipant(username: string, passwordAttempt: string): Promise<{participant?: Participant, error?: string}> {
+    const participants = await getParticipants();
+    const participant = participants.find(p => p.username === username);
+
+    if (!participant) {
+        return { error: "Invalid username or password." };
+    }
+
+    if (participant.password !== passwordAttempt) {
+        return { error: "Invalid username or password." };
+    }
+    
+    const { password, ...participantToReturn } = participant;
+    return { participant: participantToReturn };
 }
 
 // ============= TEST RUNNERS & SUBMISSIONS =============
@@ -386,6 +411,35 @@ async function runTestsForProblem(userCode: string, testCases: TestCase[]): Prom
     return results;
 }
 
+export async function submitRound1Answers(participantId: string, answers: { questionId: string, answer: string }[], timeTakenSeconds: number) {
+    const questions = await getMcqQuestions();
+    let score = 0;
+    for (const question of questions) {
+        const participantAnswer = answers.find(a => a.questionId === question.id);
+        if (participantAnswer && participantAnswer.answer === question.correctAnswer) {
+            score++;
+        }
+    }
+
+    const participants = await getParticipants();
+    const participantIndex = participants.findIndex(p => p.id === participantId);
+
+    if (participantIndex === -1) {
+        throw new Error("Participant not found");
+    }
+
+    participants[participantIndex].round1 = {
+        score,
+        answers,
+        submittedAt: new Date().toISOString(),
+        timeTakenSeconds,
+    };
+
+    await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
+    const percent = questions.length > 0 ? (score / questions.length) * 100 : 0;
+    return { score, total: questions.length, passed: percent >= 60 };
+}
+
 export async function runRound2Tests(userCode: string, snippetId: string): Promise<{ publicResults: TestCaseResult[], privateResults: Pick<TestCaseResult, 'passed'>[] }> {
     const snippets = await getRound2Snippets();
     const snippet = snippets.find(s => s.id === snippetId);
@@ -409,31 +463,31 @@ type Round2Submission = {
 
 export async function submitRound2(participantId: string, submissions: Round2Submission[], timeTakenSeconds: number) {
     const allSnippets = await getRound2Snippets();
-    let score = 0;
     const detailedSubmissions: Participant['round2']['submissions'] = [];
+    let totalTestCases = 0;
+    let passedTestCases = 0;
 
     for (const submission of submissions) {
         const snippet = allSnippets.find(s => s.id === submission.snippetId);
         if (!snippet) continue;
 
         const allTestCases = [...snippet.publicTestCases, ...snippet.privateTestCases];
-        let allPassed = true;
+        totalTestCases += allTestCases.length;
+        let allPassedForSnippet = true;
 
         const testResults = await runTestsForProblem(submission.code, allTestCases);
         for (const result of testResults) {
-            if (!result.passed) {
-                allPassed = false;
-                break;
+            if (result.passed) {
+                passedTestCases++;
+            } else {
+                allPassedForSnippet = false;
             }
         }
         
-        detailedSubmissions.push({ ...submission, passed: allPassed });
-
-        if (allPassed) {
-            score += 10; // 10 points for each correctly solved snippet
-        }
+        detailedSubmissions.push({ ...submission, passed: allPassedForSnippet });
     }
-
+    
+    const score = passedTestCases;
     const participants = await getParticipants();
     const participantIndex = participants.findIndex(p => p.id === participantId);
 
@@ -449,7 +503,8 @@ export async function submitRound2(participantId: string, submissions: Round2Sub
     };
 
     await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
-    return { score };
+    const percent = totalTestCases > 0 ? (score / totalTestCases) * 100 : 0;
+    return { score, total: totalTestCases, passed: percent >= 50 };
 }
 
 
@@ -476,31 +531,32 @@ type Round3Submission = {
 
 export async function submitRound3(participantId: string, submissions: Round3Submission[], timeTakenSeconds: number) {
     const allProblems = await getRound3Problems();
-    let score = 0;
     const detailedSubmissions: Participant['round3']['submissions'] = [];
+    let totalTestCases = 0;
+    let passedTestCases = 0;
+
 
     for (const submission of submissions) {
         const problem = allProblems.find(p => p.id === submission.problemId);
         if (!problem) continue;
 
         const allTestCases = [...problem.publicTestCases, ...problem.privateTestCases];
-        let allPassed = true;
+        totalTestCases += allTestCases.length;
+        let allPassedForProblem = true;
 
         const testResults = await runTestsForProblem(submission.code, allTestCases);
         for (const result of testResults) {
-            if (!result.passed) {
-                allPassed = false;
-                break;
+            if (result.passed) {
+                passedTestCases++;
+            } else {
+                allPassedForProblem = false;
             }
         }
         
-        detailedSubmissions.push({ ...submission, passed: allPassed });
-
-        if (allPassed) {
-            score += 20; // 20 points for each correctly solved problem
-        }
+        detailedSubmissions.push({ ...submission, passed: allPassedForProblem });
     }
 
+    const score = passedTestCases;
     const participants = await getParticipants();
     const participantIndex = participants.findIndex(p => p.id === participantId);
 
@@ -516,5 +572,6 @@ export async function submitRound3(participantId: string, submissions: Round3Sub
     };
 
     await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
-    return { score };
+    const percent = totalTestCases > 0 ? (score / totalTestCases) * 100 : 0;
+    return { score, total: totalTestCases, passed: percent >= 50 };
 }
