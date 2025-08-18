@@ -35,7 +35,7 @@ export default function ManageParticipants() {
         setIsLoading(true);
         try {
             const fetchedParticipants = await getParticipants();
-            setParticipants(fetchedParticipants.sort((a,b) => a.teamName.localeCompare(b.teamName)));
+            setParticipants(fetchedParticipants.sort((a,b) => a.name.localeCompare(b.name)));
         } catch (error) {
             toast({ title: "Error", description: "Could not load participants.", variant: "destructive" });
         } finally {
@@ -166,8 +166,7 @@ export default function ManageParticipants() {
                                                 aria-label="Select all"
                                             />
                                         </TableHead>
-                                        <TableHead>Team Name</TableHead>
-                                        <TableHead>Member Name</TableHead>
+                                        <TableHead>Full Name</TableHead>
                                         <TableHead>College</TableHead>
                                         <TableHead>Round 1 Status</TableHead>
                                         <TableHead>Round 1 Score</TableHead>
@@ -183,11 +182,10 @@ export default function ManageParticipants() {
                                                 <Checkbox
                                                     checked={selectedParticipants.includes(p.id)}
                                                     onCheckedChange={(checked) => handleSelectParticipant(p.id, !!checked)}
-                                                    aria-label={`Select ${p.teamName}`}
+                                                    aria-label={`Select ${p.name}`}
                                                 />
                                             </TableCell>
-                                            <TableCell className="font-medium">{p.teamName}</TableCell>
-                                            <TableCell>{p.name}</TableCell>
+                                            <TableCell className="font-medium">{p.name}</TableCell>
                                             <TableCell>{p.college}</TableCell>
                                             <TableCell>
                                                 {p.round1 ? (
@@ -237,7 +235,7 @@ export default function ManageParticipants() {
                                                             <AlertDialogHeader>
                                                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                                                 <AlertDialogDescription>
-                                                                    This action cannot be undone. This will permanently delete {p.teamName}'s record.
+                                                                    This action cannot be undone. This will permanently delete {p.name}'s record.
                                                                 </AlertDialogDescription>
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>

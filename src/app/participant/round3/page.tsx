@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
 type PrivateTestResult = {
@@ -88,12 +89,38 @@ export default function ParticipantRound3() {
     const [eventStatus, setEventStatus] = useState<EventStatus | null>(null);
     const [showResultDialog, setShowResultDialog] = useState(false);
     const [resultData, setResultData] = useState({ score: 0, total: 0, passed: false });
+    const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
 
     const { toast } = useToast();
     const router = useRouter();
-    const handleSubmitRef = useRef<() => void>();
+    const handleSubmitRef = useRef<() => Promise<void>>();
 
+     const handleSubmitRound = useCallback(async () => {
+        if (!participant || isSubmitting) return;
+
+        setIsSubmitting(true);
+        toast({ title: "Submitting Round 3...", description: "Your code is being evaluated." });
+        
+        const timeTaken = ROUND_DURATION_SECONDS - timeLeft;
+
+        const finalSubmissions = Object.entries(submissions).map(([problemId, state]) => ({
+            problemId,
+            code: state.code
+        }));
+
+        try {
+            const { score, total, passed } = await submitRound3(participant.id, finalSubmissions, timeTaken);
+            setResultData({ score, total, passed });
+            setShowResultDialog(true);
+        } catch (error) {
+            toast({ title: "Submission Failed", description: "Could not submit your answers.", variant: "destructive" });
+            setIsSubmitting(false);
+        }
+    }, [participant, isSubmitting, timeLeft, submissions, toast]);
+
+    handleSubmitRef.current = handleSubmitRound;
+    
     useEffect(() => {
         const participantId = sessionStorage.getItem('participantId');
         if (participantId) {
@@ -178,30 +205,6 @@ export default function ParticipantRound3() {
         }
     };
     
-    const handleSubmitRound = async () => {
-        if (!participant || isSubmitting) return;
-
-        setIsSubmitting(true);
-        toast({ title: "Submitting Round 3...", description: "Your code is being evaluated." });
-        
-        const timeTaken = ROUND_DURATION_SECONDS - timeLeft;
-
-        const finalSubmissions = Object.entries(submissions).map(([problemId, state]) => ({
-            problemId,
-            code: state.code
-        }));
-
-        try {
-            const { score, total, passed } = await submitRound3(participant.id, finalSubmissions, timeTaken);
-            setResultData({ score, total, passed });
-            setShowResultDialog(true);
-        } catch (error) {
-            toast({ title: "Submission Failed", description: "Could not submit your answers.", variant: "destructive" });
-            setIsSubmitting(false);
-        }
-    };
-    handleSubmitRef.current = handleSubmitRound;
-    
     useEffect(() => {
         if (!isLoading && problems.length > 0 && !isSubmitting && roundStarted) {
             const timer = setInterval(() => {
@@ -216,12 +219,46 @@ export default function ParticipantRound3() {
             }, 1000);
             return () => clearInterval(timer);
         }
-    }, [isLoading, problems.length, isSubmitting, roundStarted, toast]);
+    }, [isLoading, problems.length, isSubmitting, roundStarted]);
+
+    useEffect(() => {
+        if (roundStarted) {
+            const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+                e.preventDefault();
+                e.returnValue = ''; // For Chrome
+                return ''; // For other browsers
+            };
+            
+            const handlePopState = () => {
+                setShowLeaveConfirm(true);
+                history.pushState(null, '', window.location.href);
+            };
+
+            window.addEventListener('beforeunload', handleBeforeUnload);
+            window.addEventListener('popstate', handlePopState);
+            history.pushState(null, '', window.location.href);
+
+            return () => {
+                window.removeEventListener('beforeunload', handleBeforeUnload);
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [roundStarted]);
+
 
      const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+    };
+
+    const handleConfirmLeave = () => {
+        setShowLeaveConfirm(false);
+        handleSubmitRef.current?.();
+    };
+
+    const handleStay = () => {
+        setShowLeaveConfirm(false);
     };
 
     return (
@@ -249,10 +286,26 @@ export default function ParticipantRound3() {
                                     <TimerIcon size={28} />
                                     <span>{formatTime(timeLeft)}</span>
                                 </div>
-                                <Button onClick={handleSubmitRound} disabled={isSubmitting || isLoading}>
-                                    {isSubmitting && <Loader2 className='animate-spin' />}
-                                    {isSubmitting ? 'Submitting...' : 'Submit Round 3'}
-                                </Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button disabled={isSubmitting || isLoading}>Submit Round 3</Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure you want to submit?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This will submit all your code for grading. You cannot make any more changes.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleSubmitRound}>
+                                            {isSubmitting && <Loader2 className='animate-spin' />}
+                                            {isSubmitting ? 'Submitting...' : 'Yes, Submit'}
+                                        </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </div>
                         </div>
                     </CardHeader>
@@ -260,7 +313,7 @@ export default function ParticipantRound3() {
                         {problems.length === 0 ? (
                             <p className="text-center text-muted-foreground py-10">The admin has not added any coding problems yet.</p>
                         ) : (
-                            <Accordion type="single" collapsible className="w-full">
+                            <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
                                 {problems.map((problem, index) => (
                                     <AccordionItem value={`item-${index}`} key={problem.id}>
                                         <AccordionTrigger className="text-xl font-headline">
@@ -372,6 +425,20 @@ export default function ParticipantRound3() {
                         <AlertDialogAction onClick={() => router.push('/participant')}>
                             Back to Portal
                         </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
+                 <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure you want to leave?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will submit your current round immediately. This action cannot be undone.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel onClick={handleStay}>Stay</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmLeave}>Leave & Submit</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

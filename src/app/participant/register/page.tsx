@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -11,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
 import { saveParticipant } from '@/app/actions';
 import Link from 'next/link';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ParticipantRegister() {
     const router = useRouter();
@@ -18,10 +20,12 @@ export default function ParticipantRegister() {
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
-        teamName: '',
         year: '',
         dept: '',
         college: '',
+        email: '',
+        mobile: '',
+        gender: '' as 'male' | 'female' | 'other' | '',
         username: '',
         password: '',
         confirmPassword: '',
@@ -38,6 +42,10 @@ export default function ParticipantRegister() {
         setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
     }
 
+    const handleSelectChange = (value: 'male' | 'female' | 'other') => {
+        setFormData(prev => ({ ...prev, gender: value }));
+    }
+
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -46,6 +54,16 @@ export default function ParticipantRegister() {
             toast({
                 title: "Passwords do not match",
                 description: "Please check your password and try again.",
+                variant: "destructive",
+            });
+            setIsLoading(false);
+            return;
+        }
+
+        if (!formData.gender) {
+            toast({
+                title: "Gender not selected",
+                description: "Please select your gender.",
                 variant: "destructive",
             });
             setIsLoading(false);
@@ -89,22 +107,16 @@ export default function ParticipantRegister() {
         <div className="flex flex-col min-h-screen">
             <SiteHeader />
             <main className="flex-1 flex items-center justify-center container mx-auto px-4 py-8">
-                <Card className="w-full max-w-lg">
+                <Card className="w-full max-w-2xl">
                     <CardHeader>
                         <CardTitle>Participant Registration</CardTitle>
                         <CardDescription>Please enter your details to begin.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleRegister} className="space-y-4">
-                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">Full Name</Label>
-                                    <Input id="name" placeholder="e.g., Ada Lovelace" value={formData.name} onChange={handleChange} required disabled={isLoading}/>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="teamName">Team Name</Label>
-                                    <Input id="teamName" placeholder="e.g., The Compilers" value={formData.teamName} onChange={handleChange} required disabled={isLoading} />
-                                </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Full Name</Label>
+                                <Input id="name" placeholder="e.g., Ada Lovelace" value={formData.name} onChange={handleChange} required disabled={isLoading}/>
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="college">College Name</Label>
@@ -119,6 +131,29 @@ export default function ParticipantRegister() {
                                     <Label htmlFor="dept">Department</Label>
                                     <Input id="dept" placeholder="e.g., CSE" value={formData.dept} onChange={handleChange} required disabled={isLoading} />
                                 </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                               <div className="space-y-2">
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input id="email" type="email" placeholder="ada@lovelace.com" value={formData.email} onChange={handleChange} required disabled={isLoading} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="mobile">Mobile Number</Label>
+                                    <Input id="mobile" placeholder="e.g., 9876543210" value={formData.mobile} onChange={handleChange} required disabled={isLoading} />
+                                </div>
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="gender">Gender</Label>
+                                <Select onValueChange={handleSelectChange} value={formData.gender} disabled={isLoading}>
+                                    <SelectTrigger id="gender">
+                                        <SelectValue placeholder="Select gender" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="male">Male</SelectItem>
+                                        <SelectItem value="female">Female</SelectItem>
+                                        <SelectItem value="other">Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="username">Username</Label>

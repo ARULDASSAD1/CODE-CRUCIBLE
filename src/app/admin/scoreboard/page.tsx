@@ -116,7 +116,7 @@ export default function Scoreboard() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Rank</TableHead>
-                                        <TableHead>Team Name</TableHead>
+                                        <TableHead>Full Name</TableHead>
                                         <TableHead>College</TableHead>
                                         <TableHead>R1 Score</TableHead>
                                         <TableHead>R2 Score</TableHead>
@@ -131,7 +131,7 @@ export default function Scoreboard() {
                                             <TableCell className="font-medium text-lg">
                                                 {p.disqualified ? 'DQ' : p.rank}
                                             </TableCell>
-                                            <TableCell>{p.teamName}</TableCell>
+                                            <TableCell>{p.name}</TableCell>
                                             <TableCell>{p.college}</TableCell>
                                             <TableCell>{p.round1?.score ?? 'N/A'}</TableCell>
                                             <TableCell>{p.round2?.score ?? 'N/A'}</TableCell>

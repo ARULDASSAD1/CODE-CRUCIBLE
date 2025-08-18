@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -12,10 +12,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
 import { updateParticipant, Participant, getParticipant } from '@/app/actions';
 import Link from 'next/link';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function EditProfile() {
     const router = useRouter();
-    const searchParams = useSearchParams();
     const { toast } = useToast();
     const [participant, setParticipant] = useState<Participant | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -42,7 +42,7 @@ export default function EditProfile() {
         setIsLoading(true);
 
         try {
-            const updated = await updateParticipant(participant);
+            await updateParticipant(participant);
             
             toast({
                 title: "Profile Updated",
@@ -69,6 +69,14 @@ export default function EditProfile() {
         });
     }
 
+    const handleSelectChange = (value: string) => {
+        if (!participant) return;
+        setParticipant({
+            ...participant,
+            gender: value as Participant['gender'],
+        });
+    }
+
     if (isFetching) {
         return (
              <div className="flex flex-col min-h-screen">
@@ -84,34 +92,22 @@ export default function EditProfile() {
         <div className="flex flex-col min-h-screen">
             <SiteHeader />
             <main className="flex-1 flex items-center justify-center container mx-auto px-4 py-8">
-                <Card className="w-full max-w-lg">
+                <Card className="w-full max-w-2xl">
                     <CardHeader>
                         <CardTitle>Edit Your Profile</CardTitle>
                         <CardDescription>Update your registration details below.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleUpdate} className="space-y-4">
-                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">Full Name</Label>
-                                    <Input
-                                        id="name"
-                                        value={participant?.name || ''}
-                                        onChange={handleChange}
-                                        required
-                                        disabled={isLoading}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="teamName">Team Name</Label>
-                                    <Input
-                                        id="teamName"
-                                        value={participant?.teamName || ''}
-                                        onChange={handleChange}
-                                        required
-                                        disabled={isLoading}
-                                    />
-                                </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="name">Full Name</Label>
+                                <Input
+                                    id="name"
+                                    value={participant?.name || ''}
+                                    onChange={handleChange}
+                                    required
+                                    disabled={isLoading}
+                                />
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="college">College Name</Label>
@@ -145,7 +141,43 @@ export default function EditProfile() {
                                     />
                                 </div>
                             </div>
-                            <div className='flex justify-between'>
+                            <div className="grid grid-cols-2 gap-4">
+                               <div className="space-y-2">
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        value={participant?.email || ''}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={isLoading}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="mobile">Mobile Number</Label>
+                                    <Input
+                                        id="mobile"
+                                        value={participant?.mobile || ''}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={isLoading}
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="gender">Gender</Label>
+                                <Select onValueChange={handleSelectChange} value={participant?.gender} disabled={isLoading}>
+                                    <SelectTrigger id="gender">
+                                        <SelectValue placeholder="Select gender" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="male">Male</SelectItem>
+                                        <SelectItem value="female">Female</SelectItem>
+                                        <SelectItem value="other">Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className='flex justify-between pt-4'>
                                 <Button type="submit" className="w-1/2" disabled={isLoading || !participant}>
                                     {isLoading && <Loader2 className="animate-spin" />}
                                     {isLoading ? 'Saving...' : 'Save Changes'}

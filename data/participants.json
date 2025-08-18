@@ -2,7 +2,6 @@
   {
     "id": "2025-08-16T18:45:39.217Z0.22296462671952755",
     "name": "LEO DASS",
-    "teamName": "THE BLACK HAT LEGENDS",
     "college": "VMKVEC",
     "year": "3",
     "dept": "CSE",
@@ -91,30 +90,43 @@
         }
       ],
       "submittedAt": "2025-08-16T18:47:18.768Z"
-    }
+    },
+    "username": "leodass",
+    "email": "leo@dass.com",
+    "mobile": "1234567890",
+    "gender": "male"
   },
   {
     "id": "2025-08-17T08:02:28.001Z0.29248087328476235",
     "name": "himan",
-    "teamName": "compilers",
     "college": "baba university",
     "year": "2",
-    "dept": "cse"
+    "dept": "cse",
+    "username": "himan",
+    "email": "himan@baba.com",
+    "mobile": "1234567890",
+    "gender": "male"
   },
   {
     "id": "2025-08-17T08:13:45.263Z0.5087934586621623",
-    "name": "AMAN",
-    "teamName": "ROY",
+    "name": "AMAN ROY",
     "college": "UNIV",
     "year": "2",
-    "dept": "CSE"
+    "dept": "CSE",
+    "username": "aman",
+    "email": "aman@roy.com",
+    "mobile": "1234567890",
+    "gender": "male"
   },
   {
     "id": "2025-08-18T05:23:46.176Z0.009268863472247535",
     "name": "RAMALINGAM B",
-    "teamName": "b",
     "college": "omalur college",
     "year": "2",
-    "dept": "cse"
+    "dept": "cse",
+    "username": "ramalingam",
+    "email": "ram@b.com",
+    "mobile": "1234567890",
+    "gender": "male"
   }
 ]

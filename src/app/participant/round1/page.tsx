@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import { Loader2, TimerIcon, ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 type Answer = {
     questionId: string;
@@ -73,11 +74,40 @@ export default function ParticipantRound1() {
     const [eventStatus, setEventStatus] = useState<EventStatus | null>(null);
     const [showResultDialog, setShowResultDialog] = useState(false);
     const [resultData, setResultData] = useState({ score: 0, total: 0, passed: false });
+    const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
     const { toast } = useToast();
     const router = useRouter();
+    const handleSubmitRef = useRef<() => Promise<void>>();
 
-    const handleSubmitRef = useRef<() => void>();
+    const handleSubmit = useCallback(async () => {
+        if (!participant || isSubmitting) {
+            return;
+        }
+
+        setIsSubmitting(true);
+        toast({
+            title: "Submitting...",
+            description: "Your answers are being submitted.",
+        });
+
+        const timeTaken = ROUND_DURATION_SECONDS - timeLeft;
+
+        try {
+            const { score, total, passed } = await submitRound1Answers(participant.id, answers, timeTaken);
+            setResultData({ score, total, passed });
+            setShowResultDialog(true);
+        } catch (error) {
+             toast({
+                title: "Submission Failed",
+                description: "There was an error submitting your answers.",
+                variant: "destructive",
+            });
+            setIsSubmitting(false);
+        }
+    }, [participant, isSubmitting, timeLeft, answers, toast]);
+    
+    handleSubmitRef.current = handleSubmit;
 
     useEffect(() => {
         const participantId = sessionStorage.getItem('participantId');
@@ -122,34 +152,6 @@ export default function ParticipantRound1() {
         fetchInitialData();
     }, [toast, router]);
 
-    const handleSubmit = async () => {
-        if (!participant || isSubmitting) {
-            return;
-        }
-
-        setIsSubmitting(true);
-        toast({
-            title: "Submitting...",
-            description: "Your answers are being submitted.",
-        });
-
-        const timeTaken = ROUND_DURATION_SECONDS - timeLeft;
-
-        try {
-            const { score, total, passed } = await submitRound1Answers(participant.id, answers, timeTaken);
-            setResultData({ score, total, passed });
-            setShowResultDialog(true);
-        } catch (error) {
-             toast({
-                title: "Submission Failed",
-                description: "There was an error submitting your answers.",
-                variant: "destructive",
-            });
-            setIsSubmitting(false);
-        }
-    };
-    
-    handleSubmitRef.current = handleSubmit;
 
     useEffect(() => {
         if (!isLoading && questions.length > 0 && !isSubmitting && roundStarted) {
@@ -166,7 +168,35 @@ export default function ParticipantRound1() {
 
             return () => clearInterval(timer);
         }
-    }, [isLoading, questions, isSubmitting, roundStarted, toast]);
+    }, [isLoading, questions, isSubmitting, roundStarted]);
+    
+     useEffect(() => {
+        if (roundStarted) {
+            const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+                e.preventDefault();
+                e.returnValue = ''; // For Chrome
+                return ''; // For other browsers
+            };
+            
+            const handlePopState = () => {
+                setShowLeaveConfirm(true);
+                // This pushes a new state to "catch" the back button press
+                // so the user stays on the page until they confirm.
+                history.pushState(null, '', window.location.href);
+            };
+
+            window.addEventListener('beforeunload', handleBeforeUnload);
+            window.addEventListener('popstate', handlePopState);
+            // Initial push state to start catching back button
+            history.pushState(null, '', window.location.href);
+
+
+            return () => {
+                window.removeEventListener('beforeunload', handleBeforeUnload);
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [roundStarted, router]);
     
     const handleAnswerChange = (questionId: string, answer: string) => {
         setAnswers(prevAnswers => {
@@ -182,6 +212,15 @@ export default function ParticipantRound1() {
     };
 
     const answeredQuestions = answers.filter(a => a.answer !== '').length;
+
+    const handleConfirmLeave = () => {
+        setShowLeaveConfirm(false);
+        handleSubmitRef.current?.();
+    };
+
+    const handleStay = () => {
+        setShowLeaveConfirm(false);
+    };
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -230,10 +269,28 @@ export default function ParticipantRound1() {
                         </CardContent>
                         <CardFooter>
                             {questions.length > 0 && (
-                                <Button onClick={handleSubmit} disabled={isSubmitting || answeredQuestions !== questions.length}>
-                                    {isSubmitting && <Loader2 className="animate-spin" />}
-                                    {isSubmitting ? 'Submitting...' : 'Submit Answers'}
-                                </Button>
+                                <AlertDialog>
+                                     <AlertDialogTrigger asChild>
+                                        <Button disabled={isSubmitting || answeredQuestions !== questions.length}>
+                                            Submit Answers
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure you want to submit?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            You cannot change your answers after submitting.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleSubmit}>
+                                            {isSubmitting && <Loader2 className="animate-spin" />}
+                                            {isSubmitting ? 'Submitting...' : 'Yes, Submit'}
+                                        </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             )}
                         </CardFooter>
                     </Card>
@@ -254,6 +311,20 @@ export default function ParticipantRound1() {
                         <AlertDialogAction onClick={() => router.push('/participant')}>
                             Back to Portal
                         </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
+                 <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure you want to leave?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will submit your current round immediately. This action cannot be undone.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel onClick={handleStay}>Stay</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmLeave}>Leave & Submit</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

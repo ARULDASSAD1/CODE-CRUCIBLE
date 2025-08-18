@@ -241,8 +241,10 @@ export type Participant = {
     id: string;
     name: string;
     username: string;
-    password?: string; // Should be hashed in a real app
-    teamName: string;
+    password?: string;
+    email: string;
+    mobile: string;
+    gender: 'male' | 'female' | 'other';
     year: string;
     dept: string;
     college: string;
