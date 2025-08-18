@@ -325,6 +325,40 @@
       ],
       "submittedAt": "2025-08-18T19:03:48.129Z",
       "timeTakenSeconds": 171
+    },
+    "round2": {
+      "score": 0,
+      "submissions": [
+        {
+          "snippetId": "2025-08-17T18:18:03.684Z0.330381318592206",
+          "code": "#include <stdio.h>\n\nint main() {\n    int n;\n    scanf(\"%d\", &n);\n    int sum; // BUG: uninitialized, should be 0\n    while(n > 0) {\n        sum = n % 10;   // BUG: overwrites instead of adding\n        n /= 10;\n    }\n    printf(\"%d\\n\", sum);\n    return 0;\n}\n",
+          "passed": false
+        },
+        {
+          "snippetId": "2025-08-17T18:22:22.243Z0.05971716156234197",
+          "code": "#include <stdio.h>\n\nint main() {\n    int n;\n    scanf(\"%d\", &n);\n    int flag = 0;\n    for(int i = 2; i <= n; i++) {   // BUG: should only go up to sqrt(n)\n        if(n % i == 0) {\n            flag = 1;\n        }\n    }\n    if(flag == 0)\n        printf(\"Prime\\n\");\n    else\n        printf(\"Not Prime\\n\");\n    return 0;\n}\n",
+          "passed": false
+        },
+        {
+          "snippetId": "2025-08-18T05:12:01.380Z0.5572777999297056",
+          "code": "#include <stdio.h>\n\nint main() {\n    int n, rev = 0;\n    scanf(\"%d\", &n);\n    while(n > 0) {\n        rev = rev * 10 + n;   // BUG: should use n % 10\n        n /= 10;\n    }\n    printf(\"%d\\n\", rev);\n    return 0;\n}",
+          "passed": false
+        }
+      ],
+      "submittedAt": "2025-08-18T19:12:25.991Z",
+      "timeTakenSeconds": 19
     }
+  },
+  {
+    "id": "2025-08-18T19:15:02.706Z0.2366628719524302",
+    "name": "test2",
+    "year": "2",
+    "dept": "cse",
+    "college": "test2",
+    "email": "test2@gmail.com",
+    "mobile": "8888855555",
+    "gender": "other",
+    "username": "test2",
+    "password": "test2"
   }
 ]

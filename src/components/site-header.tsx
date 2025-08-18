@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 
-export function SiteHeader() {
+export function SiteHeader({ inRound }: { inRound?: boolean }) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-20 items-center justify-between">
@@ -20,12 +20,19 @@ export function SiteHeader() {
           </Link>
         </div>
         <div className="flex items-center">
-            <Image 
-                src="/logo1-modified.png"
-                alt="Vinayaka Missions Logo"
-                width={160}
-                height={90}
-            />
+           {inRound ? (
+                 <h2 className="font-headline text-xl md:text-2xl font-bold tracking-tight text-center">
+                    Department of CSE - colloquiums - 2K25
+                </h2>
+            ) : (
+                <Image 
+                    src="/logo1-modified.png"
+                    alt="Vinayaka Missions Logo"
+                    width={160}
+                    height={90}
+                    style={{ height: 'auto' }}
+                />
+            )}
         </div>
       </div>
     </header>
