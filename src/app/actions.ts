@@ -53,8 +53,11 @@ export async function compileAndRunCode(code: string, input: string): Promise<{ 
 
 // ============== INSTRUCTIONS ==============
 
-type Instructions = {
-    instructions: string;
+export type Instructions = {
+    general: string;
+    round1: string;
+    round2: string;
+    round3: string;
 }
 
 export async function saveInstructions(data: Instructions) {
@@ -69,7 +72,7 @@ export async function getInstructions(): Promise<Instructions> {
         return JSON.parse(fileContent);
     } catch (error) {
         // If file doesn't exist, return empty instructions
-        return { instructions: '' };
+        return { general: '', round1: '', round2: '', round3: '' };
     }
 }
 

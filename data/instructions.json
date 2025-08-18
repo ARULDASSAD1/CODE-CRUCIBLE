@@ -1,3 +1,6 @@
 {
-  "instructions": "hi welcome to symposium everyone"
+  "general": "Welcome to Code Crucible! This event will test your skills across three challenging rounds. Read all instructions carefully. Good luck!",
+  "round1": "This is a multiple-choice round. You will have 20 minutes to answer all questions. Select the best answer for each question. You cannot go back or change your answers once submitted. Click 'Submit Answers' when you are finished. If the timer runs out, your answers will be submitted automatically.",
+  "round2": "This is the debugging round. You will be presented with one or more C code snippets that contain bugs. Your task is to find the bugs and fix the code. You have 20 minutes. You can run your code against public test cases as many times as you like. Your final score is based on passing both public and private test cases. Click 'Submit Round 2' to finalize all your code snippets for grading.",
+  "round3": "This is the final coding round. You will be given one or more problem statements and you must write a C program from scratch to solve them. You have 20 minutes for this round. You can check your solution against public test cases. Your score depends on passing all hidden private test cases. Click 'Submit Round 3' to finalize your solutions."
 }

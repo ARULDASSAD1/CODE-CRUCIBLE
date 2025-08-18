@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { getRound3Problems, Round3Problem, runRound3Tests, TestCaseResult, submitRound3, Participant } from '@/app/actions';
+import { getRound3Problems, Round3Problem, runRound3Tests, TestCaseResult, submitRound3, Participant, getInstructions } from '@/app/actions';
 import { Loader2, Play, CheckCircle2, XCircle, TimerIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,8 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type PrivateTestResult = {
     passed: boolean;
@@ -32,6 +34,41 @@ type SubmissionState = {
 const DEFAULT_CODE_SNIPPET = `#include <stdio.h>\n\nint main() {\n    // Write your code here\n    return 0;\n}\n`;
 const ROUND_DURATION_SECONDS = 20 * 60; // 20 minutes
 
+
+function InstructionsScreen({ instructions, onStart }: { instructions: string, onStart: () => void }) {
+    const [isAgreed, setIsAgreed] = useState(false);
+
+    return (
+         <Card>
+            <CardHeader>
+                <CardTitle>Round 3 Instructions</CardTitle>
+                <CardDescription>Please read the instructions carefully before you begin.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <ScrollArea className="h-60 w-full rounded-md border p-4">
+                    <pre className="whitespace-pre-wrap font-sans text-sm">
+                        {instructions || "No instructions have been provided for this round."}
+                    </pre>
+                </ScrollArea>
+                <div className="flex items-center space-x-2">
+                    <Checkbox id="terms" checked={isAgreed} onCheckedChange={(checked) => setIsAgreed(checked as boolean)} />
+                    <label
+                        htmlFor="terms"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                        I have read and understood the instructions.
+                    </label>
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button onClick={onStart} disabled={!isAgreed}>
+                    Start Round 3
+                </Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
 export default function ParticipantRound3() {
     const [problems, setProblems] = useState<Round3Problem[]>([]);
     const [submissions, setSubmissions] = useState<SubmissionState>({});
@@ -39,6 +76,8 @@ export default function ParticipantRound3() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [participant, setParticipant] = useState<Participant | null>(null);
     const [timeLeft, setTimeLeft] = useState(ROUND_DURATION_SECONDS);
+    const [roundStarted, setRoundStarted] = useState(false);
+    const [roundInstructions, setRoundInstructions] = useState('');
 
     const { toast } = useToast();
     const router = useRouter();
@@ -56,15 +95,21 @@ export default function ParticipantRound3() {
                     variant: "destructive"
                 });
                 router.replace('/participant');
+                return;
             }
         } else {
             router.replace('/participant/register');
+            return;
         }
 
         async function fetchProblems() {
             try {
-                const fetchedProblems = await getRound3Problems();
+                const [fetchedProblems, instructionsData] = await Promise.all([
+                    getRound3Problems(),
+                    getInstructions()
+                ]);
                 setProblems(fetchedProblems);
+                setRoundInstructions(instructionsData.round3);
                 
                 const initialSubmissions: SubmissionState = {};
                 for (const problem of fetchedProblems) {
@@ -160,7 +205,7 @@ export default function ParticipantRound3() {
     handleSubmitRef.current = handleSubmitRound;
     
     useEffect(() => {
-        if (!isLoading && problems.length > 0 && !isSubmitting) {
+        if (!isLoading && problems.length > 0 && !isSubmitting && roundStarted) {
             const timer = setInterval(() => {
                 setTimeLeft(prevTime => {
                     if (prevTime <= 1) {
@@ -174,7 +219,7 @@ export default function ParticipantRound3() {
             }, 1000);
             return () => clearInterval(timer);
         }
-    }, [isLoading, problems.length, isSubmitting, toast]);
+    }, [isLoading, problems.length, isSubmitting, roundStarted, toast]);
 
      const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
@@ -186,6 +231,13 @@ export default function ParticipantRound3() {
         <div className="flex flex-col min-h-screen">
             <SiteHeader />
             <main className="flex-1 container mx-auto px-4 py-8">
+                 {isLoading ? (
+                    <div className="flex justify-center items-center h-[350px]">
+                        <Loader2 className="animate-spin" size={32} />
+                    </div>
+                ) : !roundStarted ? (
+                    <InstructionsScreen instructions={roundInstructions} onStart={() => setRoundStarted(true)} />
+                ) : (
                 <Card>
                     <CardHeader>
                         <div className="flex justify-between items-center">
@@ -208,11 +260,7 @@ export default function ParticipantRound3() {
                         </div>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 gap-6">
-                        {isLoading ? (
-                            <div className="flex justify-center items-center h-[350px]">
-                                <Loader2 className="animate-spin" size={32} />
-                            </div>
-                        ) : problems.length === 0 ? (
+                        {problems.length === 0 ? (
                             <p className="text-center text-muted-foreground py-10">The admin has not added any coding problems yet.</p>
                         ) : (
                             <Accordion type="single" collapsible className="w-full">
@@ -310,6 +358,7 @@ export default function ParticipantRound3() {
                         </Button>
                     </CardFooter>
                 </Card>
+                )}
             </main>
         </div>
     );

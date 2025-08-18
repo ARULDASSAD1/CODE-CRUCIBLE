@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { SiteHeader } from '@/components/site-header';
 
 export default async function Home() {
-  const { instructions } = await getInstructions();
+  const { general: instructions } = await getInstructions();
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
