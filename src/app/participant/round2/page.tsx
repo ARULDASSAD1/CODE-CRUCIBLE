@@ -390,8 +390,8 @@ export default function ParticipantRound2() {
                         )}
                     </CardContent>
                     <CardFooter className='border-t pt-6 flex justify-end'>
-                         <Button variant="outline" asChild>
-                           <Link href="/participant">Back to Portal</Link>
+                        <Button variant="outline" onClick={() => setShowLeaveConfirm(true)}>
+                           Back to Portal
                         </Button>
                     </CardFooter>
                 </Card>
