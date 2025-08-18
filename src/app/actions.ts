@@ -512,3 +512,5 @@ export async function submitRound3(participantId: string, submissions: Round3Sub
     await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
     return { score };
 }
+
+    
