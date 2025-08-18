@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -5,11 +6,12 @@ import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { getParticipants, Participant, toggleDisqualify, deleteParticipant } from '@/app/actions';
+import { getParticipants, Participant, toggleDisqualify, deleteParticipant, deleteParticipants } from '@/app/actions';
 import { Loader2, RefreshCw, Trash2, UserX, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +28,7 @@ export default function ManageParticipants() {
     const [participants, setParticipants] = useState<Participant[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [actioningId, setActioningId] = useState<string | null>(null);
+    const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
     const { toast } = useToast();
 
     const fetchParticipants = async () => {
@@ -70,12 +73,54 @@ export default function ManageParticipants() {
         }
     }
 
+    const handleBulkDelete = async () => {
+        try {
+            await deleteParticipants(selectedParticipants);
+            toast({ title: "Success", description: `${selectedParticipants.length} participants deleted.` });
+            setSelectedParticipants([]);
+            await fetchParticipants();
+        } catch (error) {
+            toast({ title: "Error", description: "Failed to delete selected participants.", variant: "destructive" });
+        }
+      };
+    
+      const handleSelectParticipant = (id: string, isSelected: boolean) => {
+        setSelectedParticipants(prev => 
+            isSelected ? [...prev, id] : prev.filter(pid => pid !== id)
+        );
+      };
+    
+      const handleSelectAll = (isAllSelected: boolean) => {
+        setSelectedParticipants(isAllSelected ? participants.map(p => p.id) : []);
+      }
+
     return (
         <div className="flex flex-col min-h-screen">
             <SiteHeader />
             <main className="flex-1 container mx-auto px-4 py-8">
                  <div className='flex justify-between items-center mb-4'>
-                    <div/>
+                    {selectedParticipants.length > 0 ? (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete ({selectedParticipants.length})
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete {selectedParticipants.length} participants.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleBulkDelete}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    ) : <div/>}
                     <div className='flex items-center gap-4'>
                         <Button onClick={fetchParticipants} variant="outline" size="icon" disabled={isLoading}>
                            <RefreshCw className={isLoading ? "animate-spin" : ""} />
@@ -101,6 +146,13 @@ export default function ManageParticipants() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
+                                        <TableHead className="w-[50px]">
+                                             <Checkbox
+                                                checked={selectedParticipants.length === participants.length && participants.length > 0}
+                                                onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                                                aria-label="Select all"
+                                            />
+                                        </TableHead>
                                         <TableHead>Team Name</TableHead>
                                         <TableHead>Member Name</TableHead>
                                         <TableHead>College</TableHead>
@@ -113,6 +165,13 @@ export default function ManageParticipants() {
                                 <TableBody>
                                     {participants.map((p) => (
                                         <TableRow key={p.id} className={p.disqualified ? "bg-muted/50 text-muted-foreground" : ""}>
+                                            <TableCell>
+                                                <Checkbox
+                                                    checked={selectedParticipants.includes(p.id)}
+                                                    onCheckedChange={(checked) => handleSelectParticipant(p.id, !!checked)}
+                                                    aria-label={`Select ${p.teamName}`}
+                                                />
+                                            </TableCell>
                                             <TableCell className="font-medium">{p.teamName}</TableCell>
                                             <TableCell>{p.name}</TableCell>
                                             <TableCell>{p.college}</TableCell>

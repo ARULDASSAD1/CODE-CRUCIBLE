@@ -314,6 +314,12 @@ export async function deleteParticipant(id: string): Promise<void> {
     await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
 }
 
+export async function deleteParticipants(ids: string[]): Promise<void> {
+    let participants = await getParticipants();
+    participants = participants.filter(p => !ids.includes(p.id));
+    await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
+}
+
 export async function toggleDisqualify(id: string): Promise<void> {
     const participants = await getParticipants();
     const participantIndex = participants.findIndex(p => p.id === id);
@@ -512,5 +518,3 @@ export async function submitRound3(participantId: string, submissions: Round3Sub
     await fs.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
     return { score };
 }
-
-    
