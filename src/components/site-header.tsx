@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 
-export function SiteHeader({ inRound }: { inRound?: boolean }) {
+export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-20 items-center justify-between">
@@ -20,13 +20,11 @@ export function SiteHeader({ inRound }: { inRound?: boolean }) {
           </Link>
         </div>
         
-        {inRound && (
-            <div className="hidden md:flex flex-1 justify-center">
-                 <h2 className="font-headline text-xl md:text-2xl font-bold tracking-tight text-center">
-                    Department of CSE - colloquiums - 2K25
-                </h2>
-            </div>
-        )}
+        <div className="hidden md:flex flex-1 justify-center">
+              <h2 className="font-headline text-xl md:text-2xl font-bold tracking-tight text-center">
+                Department of CSE - Colloquiums - 2k25
+            </h2>
+        </div>
 
         <div className="flex items-center">
            <Image 

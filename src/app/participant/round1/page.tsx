@@ -224,7 +224,7 @@ export default function ParticipantRound1() {
 
     return (
         <div className="flex flex-col min-h-screen">
-            <SiteHeader inRound />
+            <SiteHeader />
             <main className="flex-1 container mx-auto px-4 py-8">
                 {isLoading ? (
                     <div className="flex justify-center items-center h-64">
