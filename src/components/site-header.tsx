@@ -8,7 +8,7 @@ export function SiteHeader() {
         <div className="flex items-center gap-4 md:gap-6">
           <Link href="/" className="flex items-center space-x-2">
              <Image 
-                src="/logo2.png"
+                src="/logo2.avif"
                 alt="VMKVEC Logo"
                 width={50}
                 height={50}
@@ -21,7 +21,7 @@ export function SiteHeader() {
         </div>
         <div className="flex items-center">
             <Image 
-                src="/logo1.png"
+                src="/logo1.webp"
                 alt="Vinayaka Missions Logo"
                 width={120}
                 height={50}
