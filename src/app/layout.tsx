@@ -5,9 +5,6 @@ import { Toaster } from '@/components/ui/toaster';
 export const metadata: Metadata = {
   title: 'Code Crucible',
   description: 'A platform for competitive programming and debugging events.',
-  icons: {
-    icon: '/logo2.avif',
-  },
 };
 
 export default function RootLayout({
@@ -18,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/logo2.avif" sizes="any" />
+        <link rel="icon" href="/logo2.ico" sizes="any" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
