@@ -181,6 +181,13 @@ export async function getRound2Snippets(): Promise<Round2Snippet[]> {
     }
 }
 
+export async function getRound2TotalPossibleScore(): Promise<number> {
+    const snippets = await getRound2Snippets();
+    return snippets.reduce((total, snippet) => {
+        return total + snippet.publicTestCases.length + snippet.privateTestCases.length;
+    }, 0);
+}
+
 export async function saveRound2Snippet(snippet: Omit<Round2Snippet, 'id'>): Promise<void> {
     const snippets = await getRound2Snippets();
     const newSnippet: Round2Snippet = {

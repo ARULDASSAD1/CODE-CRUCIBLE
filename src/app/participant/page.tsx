@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ListChecks, Bug, Code, Loader2, LogOut, User, Lock } from "lucide-react";
-import { getParticipant, Participant } from '@/app/actions';
+import { getParticipant, Participant, getMcqQuestions, getRound2TotalPossibleScore } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ParticipantPortal() {
@@ -16,15 +16,23 @@ export default function ParticipantPortal() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [participant, setParticipant] = useState<Participant | null>(null);
+  const [round1Total, setRound1Total] = useState(0);
+  const [round2Total, setRound2Total] = useState(0);
 
   useEffect(() => {
     const participantId = sessionStorage.getItem('participantId');
     if (!participantId) {
       router.replace('/participant/login');
     } else {
-        getParticipant(participantId).then((p) => {
+        Promise.all([
+            getParticipant(participantId),
+            getMcqQuestions(),
+            getRound2TotalPossibleScore(),
+        ]).then(([p, mcqs, r2Total]) => {
             if (p) {
                 setParticipant(p);
+                setRound1Total(mcqs.length);
+                setRound2Total(r2Total);
             } else {
                 toast({ title: "Error", description: "Could not find participant details.", variant: "destructive" });
                 sessionStorage.removeItem('participantId');
@@ -42,12 +50,12 @@ export default function ParticipantPortal() {
   };
 
   const isRound1Completed = !!participant?.round1;
-  const isRound1Passed = isRound1Completed && (participant.round1!.score / 20 * 100) >= 60; // Assuming 20 questions
+  const isRound1Passed = isRound1Completed && round1Total > 0 && (participant.round1!.score / round1Total * 100) >= 60;
 
   const isRound2Unlocked = isRound1Completed && isRound1Passed;
   const isRound2Completed = !!participant?.round2;
-  const isRound2Passed = isRound2Completed && participant.round2!.score > 0 && (participant.round2!.submissions.length > 0 && (participant.round2!.score / (participant.round2!.submissions.length * 4)) * 100) >= 50;
-
+  const isRound2Passed = isRound2Completed && round2Total > 0 && (participant.round2!.score / round2Total * 100) >= 50;
+  
   const isRound3Unlocked = isRound2Completed && (isRound2Passed || !!participant?.advancedToRound3);
 
   if (loading) {
@@ -135,14 +143,18 @@ export default function ParticipantPortal() {
                 <CardDescription>Find and fix bugs in the given code.</CardDescription>
               </CardHeader>
               <CardContent>
-                 {isRound2Unlocked && !isRound2Completed ? (
-                    <Link href="/participant/round2" passHref>
-                        <Button className="w-full">Start Round 2</Button>
-                    </Link>
+                 {isRound2Unlocked ? (
+                    isRound2Completed ? (
+                         <Button className="w-full" disabled>Completed</Button>
+                    ) : (
+                        <Link href="/participant/round2" passHref>
+                            <Button className="w-full">Start Round 2</Button>
+                        </Link>
+                    )
                  ) : (
                     <Button className="w-full" disabled>
-                        {!isRound2Unlocked && <Lock className='mr-2' />}
-                        {isRound2Completed ? "Completed" : "Locked"}
+                        <Lock className='mr-2' />
+                        Locked
                     </Button>
                  )}
               </CardContent>
@@ -156,14 +168,18 @@ export default function ParticipantPortal() {
                 <CardDescription>Solve the final programming challenge.</CardDescription>
               </CardHeader>
               <CardContent>
-                {isRound3Unlocked && !participant?.round3 ? (
-                    <Link href="/participant/round3" passHref>
-                        <Button className="w-full">Start Round 3</Button>
-                    </Link>
+                {isRound3Unlocked ? (
+                    !!participant?.round3 ? (
+                        <Button className="w-full" disabled>Completed</Button>
+                    ) : (
+                        <Link href="/participant/round3" passHref>
+                            <Button className="w-full">Start Round 3</Button>
+                        </Link>
+                    )
                 ) : (
                     <Button className="w-full" disabled>
-                        {!isRound3Unlocked && <Lock className='mr-2' />}
-                        {!!participant?.round3 ? "Completed" : "Locked"}
+                        <Lock className='mr-2' />
+                        Locked
                     </Button>
                 )}
               </CardContent>
