@@ -15,6 +15,7 @@ const mcqsPath = path.join(dataPath, 'round1-mcqs.json');
 const round2SnippetsPath = path.join(dataPath, 'round2-snippets.json');
 const round3ProblemsPath = path.join(dataPath, 'round3-problems.json');
 const participantsPath = path.join(dataPath, 'participants.json');
+const eventStatusPath = path.join(dataPath, 'event-status.json');
 
 
 async function ensureDbReady() {
@@ -24,6 +25,32 @@ async function ensureDbReady() {
         await fs.mkdir(dataPath);
     }
 }
+
+// ============== EVENT STATUS ==============
+export type EventStatus = {
+    round1: 'enabled' | 'disabled';
+    round2: 'enabled' | 'disabled';
+    round3: 'enabled' | 'disabled';
+};
+
+export async function getEventStatus(): Promise<EventStatus> {
+    await ensureDbReady();
+    try {
+        const fileContent = await fs.readFile(eventStatusPath, 'utf8');
+        return JSON.parse(fileContent);
+    } catch (error) {
+        // Default to all disabled if the file doesn't exist
+        const defaultStatus: EventStatus = { round1: 'disabled', round2: 'disabled', round3: 'disabled' };
+        await fs.writeFile(eventStatusPath, JSON.stringify(defaultStatus, null, 2), 'utf8');
+        return defaultStatus;
+    }
+}
+
+export async function updateEventStatus(newStatus: EventStatus): Promise<void> {
+    await ensureDbReady();
+    await fs.writeFile(eventStatusPath, JSON.stringify(newStatus, null, 2), 'utf8');
+}
+
 
 // ============== CODE COMPILATION ==============
 // Normalizes newline characters and trims trailing whitespace.

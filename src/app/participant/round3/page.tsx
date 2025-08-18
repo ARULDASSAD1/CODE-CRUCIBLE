@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -6,8 +5,8 @@ import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { getRound3Problems, Round3Problem, runRound3Tests, TestCaseResult, submitRound3, Participant, getInstructions } from '@/app/actions';
-import { Loader2, Play, CheckCircle2, XCircle, TimerIcon } from 'lucide-react';
+import { getRound3Problems, Round3Problem, runRound3Tests, TestCaseResult, submitRound3, Participant, getInstructions, getEventStatus, EventStatus } from '@/app/actions';
+import { Loader2, Play, CheckCircle2, XCircle, TimerIcon, ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,7 +34,7 @@ const DEFAULT_CODE_SNIPPET = `#include <stdio.h>\n\nint main() {\n    // Write y
 const ROUND_DURATION_SECONDS = 20 * 60; // 20 minutes
 
 
-function InstructionsScreen({ instructions, onStart }: { instructions: string, onStart: () => void }) {
+function InstructionsScreen({ instructions, onStart, isRoundEnabled }: { instructions: string, onStart: () => void, isRoundEnabled: boolean }) {
     const [isAgreed, setIsAgreed] = useState(false);
 
     return (
@@ -45,13 +44,19 @@ function InstructionsScreen({ instructions, onStart }: { instructions: string, o
                 <CardDescription>Please read the instructions carefully before you begin.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+                 {!isRoundEnabled && (
+                    <div className="p-4 mb-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300" role="alert">
+                        <ShieldAlert className="inline w-4 h-4 mr-2" />
+                        <span className="font-medium">Round Not Started:</span> The admin has not enabled this round yet. Please wait.
+                    </div>
+                )}
                 <ScrollArea className="h-60 w-full rounded-md border p-4">
                     <pre className="whitespace-pre-wrap font-sans text-sm">
                         {instructions || "No instructions have been provided for this round."}
                     </pre>
                 </ScrollArea>
                 <div className="flex items-center space-x-2">
-                    <Checkbox id="terms" checked={isAgreed} onCheckedChange={(checked) => setIsAgreed(checked as boolean)} />
+                    <Checkbox id="terms" checked={isAgreed} onCheckedChange={(checked) => setIsAgreed(checked as boolean)} disabled={!isRoundEnabled} />
                     <label
                         htmlFor="terms"
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -61,7 +66,7 @@ function InstructionsScreen({ instructions, onStart }: { instructions: string, o
                 </div>
             </CardContent>
             <CardFooter>
-                <Button onClick={onStart} disabled={!isAgreed}>
+                <Button onClick={onStart} disabled={!isAgreed || !isRoundEnabled}>
                     Start Round 3
                 </Button>
             </CardFooter>
@@ -78,6 +83,7 @@ export default function ParticipantRound3() {
     const [timeLeft, setTimeLeft] = useState(ROUND_DURATION_SECONDS);
     const [roundStarted, setRoundStarted] = useState(false);
     const [roundInstructions, setRoundInstructions] = useState('');
+    const [eventStatus, setEventStatus] = useState<EventStatus | null>(null);
 
     const { toast } = useToast();
     const router = useRouter();
@@ -104,12 +110,14 @@ export default function ParticipantRound3() {
 
         async function fetchProblems() {
             try {
-                const [fetchedProblems, instructionsData] = await Promise.all([
+                const [fetchedProblems, instructionsData, status] = await Promise.all([
                     getRound3Problems(),
-                    getInstructions()
+                    getInstructions(),
+                    getEventStatus()
                 ]);
                 setProblems(fetchedProblems);
                 setRoundInstructions(instructionsData.round3);
+                setEventStatus(status);
                 
                 const initialSubmissions: SubmissionState = {};
                 for (const problem of fetchedProblems) {
@@ -236,7 +244,7 @@ export default function ParticipantRound3() {
                         <Loader2 className="animate-spin" size={32} />
                     </div>
                 ) : !roundStarted ? (
-                    <InstructionsScreen instructions={roundInstructions} onStart={() => setRoundStarted(true)} />
+                    <InstructionsScreen instructions={roundInstructions} onStart={() => setRoundStarted(true)} isRoundEnabled={eventStatus?.round3 === 'enabled'} />
                 ) : (
                 <Card>
                     <CardHeader>

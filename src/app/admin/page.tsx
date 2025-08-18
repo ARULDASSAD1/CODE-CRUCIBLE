@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Users, FileText, BarChart2, Info, UserCheck, Code } from "lucide-react";
+import { Users, FileText, BarChart2, Info, UserCheck, Code, Settings } from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -41,6 +41,19 @@ export default function AdminDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings /> Event Control
+                </CardTitle>
+                <CardDescription>Enable or disable rounds for all participants.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/admin/event-control" passHref>
+                  <Button className="w-full">Manage Event</Button>
+                </Link>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

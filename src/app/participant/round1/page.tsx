@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { getMcqQuestions, McqQuestion, Participant, submitRound1Answers, getInstructions } from '@/app/actions';
-import { Loader2, TimerIcon } from 'lucide-react';
+import { getMcqQuestions, McqQuestion, Participant, submitRound1Answers, getInstructions, getEventStatus, EventStatus } from '@/app/actions';
+import { Loader2, TimerIcon, ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -20,7 +20,7 @@ type Answer = {
 
 const ROUND_DURATION_SECONDS = 20 * 60; // 20 minutes
 
-function InstructionsScreen({ instructions, onStart }: { instructions: string, onStart: () => void }) {
+function InstructionsScreen({ instructions, onStart, isRoundEnabled }: { instructions: string, onStart: () => void, isRoundEnabled: boolean }) {
     const [isAgreed, setIsAgreed] = useState(false);
 
     return (
@@ -30,13 +30,19 @@ function InstructionsScreen({ instructions, onStart }: { instructions: string, o
                 <CardDescription>Please read the instructions carefully before you begin.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+                {!isRoundEnabled && (
+                    <div className="p-4 mb-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300" role="alert">
+                        <ShieldAlert className="inline w-4 h-4 mr-2" />
+                        <span className="font-medium">Round Not Started:</span> The admin has not enabled this round yet. Please wait.
+                    </div>
+                )}
                 <ScrollArea className="h-60 w-full rounded-md border p-4">
                     <pre className="whitespace-pre-wrap font-sans text-sm">
                         {instructions || "No instructions have been provided for this round."}
                     </pre>
                 </ScrollArea>
                 <div className="flex items-center space-x-2">
-                    <Checkbox id="terms" checked={isAgreed} onCheckedChange={(checked) => setIsAgreed(checked as boolean)} />
+                    <Checkbox id="terms" checked={isAgreed} onCheckedChange={(checked) => setIsAgreed(checked as boolean)} disabled={!isRoundEnabled} />
                     <label
                         htmlFor="terms"
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -46,7 +52,7 @@ function InstructionsScreen({ instructions, onStart }: { instructions: string, o
                 </div>
             </CardContent>
             <CardFooter>
-                <Button onClick={onStart} disabled={!isAgreed}>
+                <Button onClick={onStart} disabled={!isAgreed || !isRoundEnabled}>
                     Start Round 1
                 </Button>
             </CardFooter>
@@ -63,6 +69,7 @@ export default function ParticipantRound1() {
     const [timeLeft, setTimeLeft] = useState(ROUND_DURATION_SECONDS);
     const [roundStarted, setRoundStarted] = useState(false);
     const [roundInstructions, setRoundInstructions] = useState('');
+    const [eventStatus, setEventStatus] = useState<EventStatus | null>(null);
     const { toast } = useToast();
     const router = useRouter();
 
@@ -90,14 +97,16 @@ export default function ParticipantRound1() {
         async function fetchInitialData() {
             setIsLoading(true);
             try {
-                const [fetchedQuestions, instructionsData] = await Promise.all([
+                const [fetchedQuestions, instructionsData, status] = await Promise.all([
                     getMcqQuestions(),
-                    getInstructions()
+                    getInstructions(),
+                    getEventStatus()
                 ]);
 
                 setQuestions(fetchedQuestions);
                 setAnswers(fetchedQuestions.map(q => ({ questionId: q.id, answer: '' })));
                 setRoundInstructions(instructionsData.round1);
+                setEventStatus(status);
 
             } catch (error) {
                 toast({ title: "Error", description: "Could not load round data.", variant: "destructive" });
@@ -201,7 +210,7 @@ export default function ParticipantRound1() {
                         <Loader2 className="animate-spin" size={32} />
                     </div>
                 ) : !roundStarted ? (
-                    <InstructionsScreen instructions={roundInstructions} onStart={() => setRoundStarted(true)} />
+                    <InstructionsScreen instructions={roundInstructions} onStart={() => setRoundStarted(true)} isRoundEnabled={eventStatus?.round1 === 'enabled'} />
                 ) : (
                     <Card>
                         <CardHeader>
