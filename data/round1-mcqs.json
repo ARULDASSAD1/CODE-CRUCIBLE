@@ -1,6 +1,6 @@
 [
   {
-    "question": "What is the output of the following code?\nmain() { int i = 1; i = i + 2 * i++; printf(\"%d\", i); }",
+    "question": "What is the output of the following code? main() { int i = 1; i = i + 2 * i++; printf(\"%d\", i); }",
     "options": [
       "4",
       "5",
@@ -8,62 +8,7 @@
       "7"
     ],
     "correctAnswer": "6",
-    "id": "2025-08-16T18:23:18.198Z0.1258848748019692"
-  },
-  {
-    "question": "What is the output of the following code?\nmain() { #define scanf \"%s is string\" printf(scanf, scanf); }",
-    "options": [
-      "%s is string %s is string",
-      "scanf scanf",
-      "%s is string scanf",
-      "Error"
-    ],
-    "correctAnswer": "%s is string scanf",
-    "id": "2025-08-16T18:23:18.198Z0.2942324789487838"
-  },
-  {
-    "question": "What is the output of the following code snippet?\nint a[3][4] = {{1, 2,}, {4, 8, 15}}; printf(\"%d\", a[2][0]);",
-    "options": [
-      "4",
-      "2",
-      "0",
-      "not defined"
-    ],
-    "correctAnswer": "0",
-    "id": "2025-08-16T18:23:18.198Z0.31095911792384023"
-  },
-  {
-    "question": "What will be the output of the following code if x=1234 is passed to the function display?\nvoid display(int x) { if (x != 0) { display(x / 16); putchar(\"0123456789ABCDEF\"[x % 16]); } }",
-    "options": [
-      "1234",
-      "4321",
-      "4D2",
-      "It will not compile"
-    ],
-    "correctAnswer": "4D2",
-    "id": "2025-08-16T18:23:18.198Z0.09708918448269688"
-  },
-  {
-    "question": "What is the minimum number of times the do-while loop is executed?",
-    "options": [
-      "0",
-      "1",
-      "2",
-      "cannot be predicted"
-    ],
-    "correctAnswer": "1",
-    "id": "2025-08-16T18:23:18.198Z0.0814520435450512"
-  },
-  {
-    "question": "Which expression yields the correct value for the expression 1/3?",
-    "options": [
-      "1./3",
-      "(float)1/3",
-      "options a and b",
-      "float(1/3)"
-    ],
-    "correctAnswer": "options a and b",
-    "id": "2025-08-16T18:23:18.198Z0.9615673991677147"
+    "id": "2025-09-03T04:07:06.898Z0.32808156837093705"
   },
   {
     "question": "What is the associativity of the ++ operator?",
@@ -74,32 +19,54 @@
       "a for pointer expression and b for arithmetic expression"
     ],
     "correctAnswer": "right to left",
-    "id": "2025-08-16T18:23:18.198Z0.4025568393968457"
+    "id": "2025-09-03T04:07:06.898Z0.8734442679643011"
   },
   {
-    "question": "What is the output of the following code?\nint x=2, y=6; printf(\"%d\", x=y);",
+    "question": "What is the correct format specifier for an integer in printf()?",
     "options": [
-      "2",
-      "6",
+      "%c",
+      "%f",
+      "%d",
+      "%s"
+    ],
+    "correctAnswer": "%d",
+    "id": "2025-09-03T04:07:06.898Z0.7200257012281723"
+  },
+  {
+    "question": "What is the default return type of main() in C (if not specified)?",
+    "options": [
+      "int",
+      "void",
+      "float",
+      "char"
+    ],
+    "correctAnswer": "int",
+    "id": "2025-09-03T04:07:06.899Z0.3698625354049463"
+  },
+  {
+    "question": "What is the minimum number of times the do-while loop is executed?",
+    "options": [
       "0",
-      "1"
+      "1",
+      "2",
+      "cannot be predicted"
     ],
-    "correctAnswer": "6",
-    "id": "2025-08-16T18:23:18.198Z0.3784874611309701"
+    "correctAnswer": "1",
+    "id": "2025-09-03T04:07:06.899Z0.9624185639508365"
   },
   {
-    "question": "What is the output of the following code?\nint i = 0; while(i < 10) { if(i == 5) { continue; } printf(\"%d \", i); i++; }",
+    "question": "What is the output of the following code snippet? int a[3][4] = {{1, 2,}, {4, 8, 15}}; printf(\"%d\", a[2][0]);",
     "options": [
-      "0 1 2 3 4 5 6 7 8 9",
-      "0 1 2 3 4",
-      "0 1 2 3 4 5... (infinite loop)",
-      "Error"
+      "4",
+      "2",
+      "0",
+      "not defined"
     ],
-    "correctAnswer": "0 1 2 3 4 5... (infinite loop)",
-    "id": "2025-08-16T18:23:18.198Z0.5672697531152704"
+    "correctAnswer": "0",
+    "id": "2025-09-03T04:07:06.899Z0.44964705213006373"
   },
   {
-    "question": "What is the output of the following code?\nint i = 0; switch(i) { case 0: i++; case 1: i++; case 2: i++; } printf(\"%d\", i);",
+    "question": "What is the output of the following code? int i = 0; switch(i) { case 0: i++; case 1: i++; case 2: i++; } printf(\"%d\", i);",
     "options": [
       "0",
       "1",
@@ -107,116 +74,149 @@
       "3"
     ],
     "correctAnswer": "3",
-    "id": "2025-08-16T18:23:18.198Z0.8351961542267097"
+    "id": "2025-09-03T04:07:06.899Z0.5103359258939919"
   },
   {
-    "question": "What is the output of the following code?\nint ones, twos, threes, others; int c; ones = twos = threes = others = 0; while ((c = getchar()) != '\\n') { switch(c) { case '1': ones++; case '2': twos++; case '3': threes++; default: others++; } } printf(\"%d\", ones); If the input is 1alble, what is the output?",
+    "question": "What is the output of the following code? int i = 0; while(i < 10) { if(i == 5) { continue; } printf(\"%d \", i); i++; }",
     "options": [
-      "15",
-      "34",
-      "33",
-      "31"
-    ],
-    "correctAnswer": "31",
-    "id": "2025-08-16T18:23:18.198Z0.14199249478089304"
-  },
-  {
-    "question": "What is the output of the following code?\nmain() { int x = 5; int i = x++; printf(\"%d\", i); }",
-    "options": [
-      "4",
-      "5",
-      "6",
-      "7"
-    ],
-    "correctAnswer": "5",
-    "id": "2025-08-16T18:23:18.198Z0.5559638141515442"
-  },
-  {
-    "question": "What is the output of the following code?\nint ch = 'A'; while (ch <= 'F') { switch(ch) { case 'A': case 'B': case 'C': case 'D': ch++; continue; case 'E': ch++; break; } putchar(ch); }",
-    "options": [
-      "ABCDEF",
-      "EFG",
-      "FG",
+      "0 1 2 3 4 5 6 7 8 9",
+      "0 1 2 3 4",
+      "0 1 2 3 4 5... (infinite loop)",
       "Error"
     ],
-    "correctAnswer": "FG",
-    "id": "2025-08-16T18:23:18.198Z0.781436250556651"
+    "correctAnswer": "0 1 2 3 4 5... (infinite loop)",
+    "id": "2025-09-03T04:07:06.899Z0.4882858454825818"
   },
   {
-    "question": "Identify the valid compound assignment operator.",
+    "question": "What is the output of the following code? int x=2, y=6; printf(\"%d\", x=y);",
     "options": [
-      "<-",
-      ">>=",
-      "<--",
-      ">>"
-    ],
-    "correctAnswer": ">>=",
-    "id": "2025-08-16T18:23:18.198Z0.9016503843253956"
-  },
-  {
-    "question": "The bitwise OR operator is used to",
-    "options": [
-      "set the desired bits to 1",
-      "multiply the numbers",
-      "divide the numbers",
-      "mask the bits"
-    ],
-    "correctAnswer": "set the desired bits to 1",
-    "id": "2025-08-16T18:23:18.198Z0.06314364027004626"
-  },
-  {
-    "question": "What is the output of the following code?\nint i = 20; printf(\"%x\", i);",
-    "options": [
-      "x14",
-      "14",
-      "20",
-      "none of the above"
-    ],
-    "correctAnswer": "14",
-    "id": "2025-08-16T18:23:18.198Z0.18982067375714706"
-  },
-  {
-    "question": "What is the output of the following code?\nint i; for(i=0; i<10; i++) { printf(\"%d\", i); }",
-    "options": [
-      "0123456789",
-      "12345678910",
-      "012345678910",
-      "None of the above"
-    ],
-    "correctAnswer": "0123456789",
-    "id": "2025-08-16T18:23:18.198Z0.6637355616345855"
-  },
-  {
-    "question": "What is the output of the following code snippet?\nmain() { int ones, twos; ones = twos = 0; for (int i = 0; i < 20; i++) { switch (i % 5) { case 0: ones++; case 1: twos++; } } printf(\"%d, %d\", ones, twos); }",
-    "options": [
-      "0, 5, 9, 13, 17",
-      "5, 9, 13, 17",
-      "12, 17, 22",
-      "16, 21"
-    ],
-    "correctAnswer": "16, 21",
-    "id": "2025-08-16T18:23:18.198Z0.430872913099676"
-  },
-  {
-    "question": "What is the output of the following code?\nint x = 5; x = x + 2 * x--; printf(\"%d\", x);",
-    "options": [
-      "15",
-      "14",
-      "13",
-      "12"
-    ],
-    "correctAnswer": "15",
-    "id": "2025-08-16T18:23:18.198Z0.3813882647190747"
-  },
-  {
-    "question": "What is the output of the following code?\nint x = 5; printf(\"%d\", x>>1);",
-    "options": [
-      "10",
-      "5",
       "2",
+      "6",
+      "0",
       "1"
     ],
-    "correctAnswer": "2",
-    "id": "2025-08-16T18:23:18.198Z0.7388014433910695"
+    "correctAnswer": "6",
+    "id": "2025-09-03T04:07:06.899Z0.5852171678372431"
+  },
+  {
+    "question": "What is the output of the following code? main() { #define scanf \"%s is string\" printf(scanf, scanf); }",
+    "options": [
+      "%s is string %s is string",
+      "scanf scanf",
+      "%s is string scanf",
+      "Error"
+    ],
+    "correctAnswer": "%s is string scanf",
+    "id": "2025-09-03T04:07:06.899Z0.7425665067424145"
+  },
+  {
+    "question": "What is the size of int in most 32-bit C compilers?",
+    "options": [
+      "2 bytes",
+      "4 bytes",
+      "8 bytes",
+      "1 byte"
+    ],
+    "correctAnswer": "4 bytes",
+    "id": "2025-09-03T04:07:06.899Z0.3368722786932159"
+  },
+  {
+    "question": "What will be the output of the following code if x=1234 is passed to the function display? void display(int x) { if (x != 0) { display(x / 16); putchar(\"0123456789ABCDEF\"[x % 16]); } }",
+    "options": [
+      "1234",
+      "4321",
+      "4D2",
+      "It will not compile"
+    ],
+    "correctAnswer": "4D2",
+    "id": "2025-09-03T04:07:06.899Z0.9908248286289056"
+  },
+  {
+    "question": "Which data type is used to store characters in C?",
+    "options": [
+      "char",
+      "int",
+      "float",
+      "double"
+    ],
+    "correctAnswer": "char",
+    "id": "2025-09-03T04:07:06.899Z0.7945806239477511"
+  },
+  {
+    "question": "Which expression yields the correct value for the expression 1/3?",
+    "options": [
+      "1./3",
+      "(float)1/3",
+      "options a and b",
+      "float(1/3)"
+    ],
+    "correctAnswer": "options a and b",
+    "id": "2025-09-03T04:07:06.899Z0.9939616661200585"
+  },
+  {
+    "question": "Which function is used to read a single character from the user?",
+    "options": [
+      "printf()",
+      "scanf()",
+      "getchar()",
+      "gets()"
+    ],
+    "correctAnswer": "getchar()",
+    "id": "2025-09-03T04:07:06.899Z0.2670901350174475"
+  },
+  {
+    "question": "Which header file is required for printf() and scanf()?",
+    "options": [
+      "stdlib.h",
+      "stdio.h",
+      "conio.h",
+      "math.h"
+    ],
+    "correctAnswer": "stdio.h",
+    "id": "2025-09-03T04:07:06.899Z0.27340614791669937"
+  },
+  {
+    "question": "Which keyword is used to declare a constant in C?",
+    "options": [
+      "let",
+      "const",
+      "constant",
+      "final"
+    ],
+    "correctAnswer": "const",
+    "id": "2025-09-03T04:07:06.899Z0.8774671411308219"
+  },
+  {
+    "question": "Which operator is used for multiplication in C?",
+    "options": [
+      "+",
+      "*",
+      "-",
+      "/"
+    ],
+    "correctAnswer": "*",
+    "id": "2025-09-03T04:07:06.899Z0.7182295408600263"
+  },
+  {
+    "question": "Which symbol is used for single-line comments in C?",
+    "options": [
+      "#",
+      "//",
+      "/* */",
+      "<!-- -->"
+    ],
+    "correctAnswer": "//",
+    "id": "2025-09-03T04:07:06.899Z0.9995033334181693"
+  },
+  {
+    "question": "Which symbol is used to end a statement in C?",
+    "options": [
+      ";",
+      ":",
+      ".",
+      ","
+    ],
+    "correctAnswer": ";",
+    "id": "2025-09-03T04:07:06.899Z0.3151352520472377"
   }
 ]

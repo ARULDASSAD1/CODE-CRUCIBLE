@@ -1,19 +1,76 @@
 [
   {
     "title": "Sum of Even Numbers",
-    "description": "Description:\nGiven an integer N, read N integers and print the sum of all even numbers.",
+    "description": "Given an integer N, read N integers and print the sum of all even numbers.\n\nInput:\n\nFirst line: integer N\n\nSecond line: N integers\n\nOutput:\n\nSingle integer (sum of even numbers)",
     "publicTestCases": [
       {
         "input": "5\n1 2 3 4 5",
         "expectedOutput": "6"
-      }
-    ],
-    "privateTestCases": [
+      },
       {
         "input": "4\n2 4 6 8",
         "expectedOutput": "20"
       }
     ],
-    "id": "2025-08-17T18:54:56.649Z0.907443676299744"
+    "privateTestCases": [
+      {
+        "input": "3\n7 9 11",
+        "expectedOutput": "0"
+      },
+      {
+        "input": "6\n10 15 20 25 30 35",
+        "expectedOutput": "60"
+      },
+      {
+        "input": "1\n8",
+        "expectedOutput": "8"
+      },
+      {
+        "input": "5\n2 2 2 2 2",
+        "expectedOutput": "10"
+      },
+      {
+        "input": "7\n1 3 5 7 9 11 13",
+        "expectedOutput": "0"
+      }
+    ],
+    "id": "2025-09-01T09:55:36.378Z0.586021889334003"
+  },
+  {
+    "title": "Count Words in a Sentence",
+    "description": "Given a sentence, count the number of words. A word is defined as any sequence of characters separated by spaces.\n\nInput:\n\n*A single line sentence.*\n\nOutput:\n\n*Integer (number of words).*",
+    "publicTestCases": [
+      {
+        "input": "Hello world",
+        "expectedOutput": "2"
+      },
+      {
+        "input": "This is a test",
+        "expectedOutput": "4"
+      }
+    ],
+    "privateTestCases": [
+      {
+        "input": "One",
+        "expectedOutput": "1"
+      },
+      {
+        "input": "Count the words correctly",
+        "expectedOutput": "4"
+      },
+      {
+        "input": "Leading and trailing",
+        "expectedOutput": "3"
+      },
+      {
+        "input": "Multiple spaces here",
+        "expectedOutput": "3"
+      },
+      {
+        "input": "A B C D",
+        "expectedOutput": "4"
+      }
+    ],
+    "id": "2025-09-01T09:59:01.743Z0.7047787791344371"
   }
 ]
